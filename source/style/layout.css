@@ -16,13 +16,10 @@ body {
 	white-space: pre-wrap;
 	min-width: 0px;
 	flex-wrap: nowrap;
-	/*flex-wrap: wrap;*/
 }
 
 .terminal .output p > span {
 	display: block;
-	/*display: contents;*/
-	/*text-indent:  0em;*/
 }
 
 .terminal .bottom {
@@ -88,13 +85,4 @@ body {
 
 .terminal.inverted .byte {
 	filter: saturate(250%) brightness(200%);
-}
-
-@keyframes scan {
-	from {
-		background-position: 0px 0px;
-	}
-	to {
-		background-position: 0px -12px;
-	}
 }

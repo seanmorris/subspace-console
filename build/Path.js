@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.Path = void 0;
 
-var _Task = require("./Task");
+var _Task = require("subspace-console/Task");
 
 var Path = {
   task: _Task.Task

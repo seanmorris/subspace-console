@@ -60,7 +60,7 @@ var Console = /*#__PURE__*/function (_View) {
     console.log(options);
     _this = _super.call(this, args);
     var defaults = {
-      init: '/init_rc',
+      init: false,
       path: _Path.Path
     };
     var allOptions = Object.assign({}, defaults, options);

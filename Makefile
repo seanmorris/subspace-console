@@ -2,10 +2,12 @@
 
 build:
 	npx babel source --out-dir build/
+	cp -rv source/style ./build
 	cp -rv build/* ./
 
 build-prod:
 	npx babel source --out-file dist/subspace-console.js
+	cp -rv source/style/**.css ./dist
 
 dependencies:
 	npm install
