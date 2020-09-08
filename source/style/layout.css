@@ -1,0 +1,100 @@
+body {
+	flex-direction: column;
+}
+
+.terminal {
+	width: 100%;
+	min-height: 100%;
+	position: relative;
+	box-sizing: border-box;
+	font-family: monospace;
+}
+
+.terminal .output p {
+	display: flex;
+	margin: 0px;
+	white-space: pre-wrap;
+	min-width: 0px;
+	flex-wrap: nowrap;
+	/*flex-wrap: wrap;*/
+}
+
+.terminal .output p > span {
+	display: block;
+	/*display: contents;*/
+	/*text-indent:  0em;*/
+}
+
+.terminal .bottom {
+	display: flex;
+	flex-direction: row;
+	position: relative;
+}
+
+.terminal .bottom div:last-child {
+	flex-grow: 1;
+}
+
+.terminal input,
+.terminal textarea {
+	width:       100%;
+	padding:     0px;
+	border:      none;
+	color:       inherit;
+	background:  inherit;
+	font-family: inherit;
+	font-size:   inherit;
+	resize:      none;
+	overflow:    hidden;
+
+	pointer-events: none;
+}
+
+.terminal input:focus,
+.terminal textarea:focus {
+	outline: none;
+}
+
+.terminal .submit {
+	font-family: inherit;
+	position: fixed;
+	right: 1em;
+	bottom: 1em;
+	padding: 1em;
+	padding-left: 2em;
+	padding-right: 2em;
+	user-select: none;
+	cursor: pointer;
+}
+
+.terminal .submit:active {
+	right: 0.8em;
+	bottom: 0.8em;
+}
+
+.terminal.inverted {
+	transition: filter 0.2s ease-out, text-shadow 0s;
+	filter: invert(100%);
+}
+
+.terminal.inverted span,
+.terminal.inverted input {
+	transition: filter 0.2s ease-out, text-shadow 0s;
+}
+
+.terminal .byte {
+	word-break: keep-all;
+}
+
+.terminal.inverted .byte {
+	filter: saturate(250%) brightness(200%);
+}
+
+@keyframes scan {
+	from {
+		background-position: 0px 0px;
+	}
+	to {
+		background-position: 0px -12px;
+	}
+}
