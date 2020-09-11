@@ -1,7 +1,6 @@
 import { View } from 'curvature/base/View';
 
-import { Socket } from 'subspace-client/Socket';
-import { MeltingText } from 'view/MeltingText';
+import { MeltingText } from './view/MeltingText';
 
 import { Task } from './Task';
 import { Path } from './Path';
@@ -11,17 +10,11 @@ import { rawquire } from './rawquire.macro';
 export class Console extends View {
 	constructor(options = {}, args = {})
 	{
-		console.log(options.path);
-		console.log(options);
-
 		super(args);
 
 		const defaults = {init: false, path: Path};
 
 		const allOptions = Object.assign({}, defaults, options);
-
-		console.log(allOptions.path);
-		console.log(allOptions);
 
 		this.template      = rawquire('./console.tmp.html');
 		this.args.input    = '';
@@ -59,11 +52,18 @@ export class Console extends View {
 				}
 			}
 
+			const scroller = this.scroller;
+			const scrollTo = scroller === window
+				? document.body.scrollHeight
+				: scroller.scrollHeight;
+
+			console.log(scroller, scroller.scrollHeight);
+
 			this.onNextFrame(() =>{
-				window.scrollTo({
-					top: document.body.scrollHeight,
-					left: 0,
+				scroller.scrollTo({
 					behavior: 'smooth'
+					, left:   0
+					, top:    scroller.scrollHeight
 				});
 
 			});
@@ -73,6 +73,8 @@ export class Console extends View {
 		{
 			this.runScript(allOptions.init);
 		}
+
+		this.scroller = allOptions.scroller || window;
 
 		this.path = allOptions.path || {};
 
@@ -233,7 +235,7 @@ export class Console extends View {
 			const args = commandString.trim().split(' ');
 			const command = args.shift().trim();
 
-			if(command.substr(-1) == "?")
+			if(command.length > 1 && command.substr(-1) == "?")
 			{
 				command = command.substr(0, command.length - 1);
 
@@ -292,15 +294,13 @@ export class Console extends View {
 			this.tasks.unshift(task);
 
 			const output = (event) => {
-				const prompt = task.prompt || this.args.prompt || '::';
+				const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
 
 				this.args.output.push(`${prompt} ${event.detail}`);
 			};
 
 			const error  = (event) => {
 				const errorPrompt = task.errorPrompt || '!!';
-
-				this.args.prompt = errorPrompt;
 
 				this.args.output.push(`${errorPrompt} ${event.detail}`);
 			}
@@ -312,6 +312,8 @@ export class Console extends View {
 
 			task.catch(error  => console.error(error));
 			task.catch(error  => this.args.output.push(`!! ${error}`));
+
+			this.args.prompt = task.prompt;
 
 			task.finally(done => {
 				task.removeEventListener('error', error);

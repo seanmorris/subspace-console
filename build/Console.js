@@ -7,9 +7,7 @@ exports.Console = void 0;
 
 var _View2 = require("curvature/base/View");
 
-var _Socket = require("subspace-client/Socket");
-
-var _MeltingText = require("view/MeltingText");
+var _MeltingText = require("./view/MeltingText");
 
 var _Task = require("./Task");
 
@@ -56,16 +54,12 @@ var Console = /*#__PURE__*/function (_View) {
 
     _classCallCheck(this, Console);
 
-    console.log(options.path);
-    console.log(options);
     _this = _super.call(this, args);
     var defaults = {
       init: false,
       path: _Path.Path
     };
     var allOptions = Object.assign({}, defaults, options);
-    console.log(allOptions.path);
-    console.log(allOptions);
     _this.template = "<div class = \"terminal [[inverted]]\" cv-on = \"click:focus(event)\">\n\t<div class = \"output\" cv-each = \"output:line:l\" cv-ref = \"output:curvature/base/Tag\">\n\t\t<p>[[line]]</p>\n\t</div>\n\t<div class = \"bottom\">\n\t\t<div>[[prompt]]&nbsp;</div>\n\t\t<div>\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<textarea\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-on   = \":keydown(event);:keyup(event)\"\n\t\t\t\t\tcv-ref  = \"input:curvature/base/Tag\"\n\t\t\t\t\trow     = \"1\"\n\t\t\t\t></textarea>\n\t\t\t</form>\n\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<input\n\t\t\t\t\tautocomplete = \"one-time-code\"\n\t\t\t\t\tname    = \"pw-input\"\n\t\t\t\t\ttype    = \"password\"\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-ref  = \"password:curvature/base/Tag\"\n\t\t\t\t\tcv-on   = \":keydown(event,false);:keyup(event,false)\"\n\t\t\t\t/>\n\t\t\t</form>\n\n\t\t\t<input\n\t\t\t\tcv-on  = \"input:fileLoaded(event)\"\n\t\t\t\tcv-ref = \"file:curvature/base/Tag\"\n\t\t\t\tname   = \"file-input\"\n\t\t\t\ttype   = \"file\"\n\t\t\t\tstyle  = \"display: none\"\n\t\t\t/>\n\t\t</div>\n\t</div>\n</div>\n\n<div class = \"scanlines\"></div>\n";
     _this.args.input = '';
     _this.args.output = [];
@@ -94,11 +88,15 @@ var Console = /*#__PURE__*/function (_View) {
         }
       }
 
+      var scroller = _this.scroller;
+      var scrollTo = scroller === window ? document.body.scrollHeight : scroller.scrollHeight;
+      console.log(scroller, scroller.scrollHeight);
+
       _this.onNextFrame(function () {
-        window.scrollTo({
-          top: document.body.scrollHeight,
+        scroller.scrollTo({
+          behavior: 'smooth',
           left: 0,
-          behavior: 'smooth'
+          top: scroller.scrollHeight
         });
       });
     });
@@ -107,6 +105,7 @@ var Console = /*#__PURE__*/function (_View) {
       _this.runScript(allOptions.init);
     }
 
+    _this.scroller = allOptions.scroller || window;
     _this.path = allOptions.path || {};
     _this.originalInput = '';
     return _this;
@@ -256,7 +255,7 @@ var Console = /*#__PURE__*/function (_View) {
 
           var _command = args.shift().trim();
 
-          if (_command.substr(-1) == "?") {
+          if (_command.length > 1 && _command.substr(-1) == "?") {
             _command = _command.substr(0, _command.length - 1);
 
             if (_command in this.path) {
@@ -310,14 +309,13 @@ var Console = /*#__PURE__*/function (_View) {
         this.tasks.unshift(task);
 
         var output = function output(event) {
-          var prompt = task.prompt || _this4.args.prompt || '::';
+          var prompt = task.outPrompt || task.prompt || _this4.args.prompt || '::';
 
           _this4.args.output.push("".concat(prompt, " ").concat(event.detail));
         };
 
         var error = function error(event) {
           var errorPrompt = task.errorPrompt || '!!';
-          _this4.args.prompt = errorPrompt;
 
           _this4.args.output.push("".concat(errorPrompt, " ").concat(event.detail));
         };
@@ -331,6 +329,7 @@ var Console = /*#__PURE__*/function (_View) {
         task["catch"](function (error) {
           return _this4.args.output.push("!! ".concat(error));
         });
+        this.args.prompt = task.prompt;
         task["finally"](function (done) {
           task.removeEventListener('error', error);
           task.removeEventListener('output', output);
