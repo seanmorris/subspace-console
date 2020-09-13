@@ -57,8 +57,6 @@ export class Console extends View {
 				? document.body.scrollHeight
 				: scroller.scrollHeight;
 
-			console.log(scroller, scroller.scrollHeight);
-
 			this.onNextFrame(() =>{
 				scroller.scrollTo({
 					behavior: 'smooth'

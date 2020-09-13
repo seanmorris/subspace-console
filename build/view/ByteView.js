@@ -42,26 +42,35 @@ var ByteView = /*#__PURE__*/function (_View) {
     _classCallCheck(this, ByteView);
 
     _this = _super.call(this, args);
-    _this.args.separator = _this.args.separator || '';
-    _this.template = "<span\n\t\t\tcv-each = \"bytes:byte:b\"\n\t\t\tcv-carry = \"separator\"\n\t\t\t\"><span\n\t\t\t\tclass  = \"byte\"\n\t\t\t\tcv-on  = \"cvDomAttached:color(event, byte, $view)\"\n\t\t\t\tcv-ref = \"byte:curvature/base/Tag\"\n\n\t\t\t>[[byte]][[separator]]</span></span>";
+    _this.template = "<span cv-each = \"bytes:byte:b\">\n\t\t\t<span class = \"byte\" style = \"width:2em;\" cv-ref  = \"byte:curvature/base/Tag\"></span>\n\t\t</span>";
     return _this;
   }
 
   _createClass(ByteView, [{
-    key: "color",
-    value: function color(event, _byte, $view) {
-      var hue = parseInt(_byte, 16); // let color = '#' + [
+    key: "attached",
+    value: function attached() {
+      var _this2 = this;
+
+      // let color = '#' + [
       // 	(Math.pow(Math.cos(Math.PI * hue + 5), 2) * 192)
       // 	, (Math.pow(Math.cos(Math.PI * hue + 10), 2) * 192)
       // 	, (Math.pow(Math.cos(Math.PI * hue + 0), 2) * 192)
       // ].map((x)=>Math.floor(x).toString(16).padStart(2, '0')).join('');
+      requestAnimationFrame(function () {
+        var _byte = _this2.args.value;
+        var hue = parseInt(_byte, 16);
 
-      if (!hue) {
-        return;
-      }
+        _this2.args.bindTo('value', function (v) {
+          _this2.tags["byte"].element.textContent = v;
+        });
 
-      var color = "hsl(" + 360 * hue / 0xFF + ",100%,50%)";
-      $view.tags["byte"].element.style.color = color; // $view.tags.byte.element.style['text-shadow'] = `2px 0px 5px ${color}, -2px 0px 5px ${color}`
+        if (!hue) {
+          return;
+        }
+
+        var color = "hsl(" + 360 * hue / 0xFF + ",100%,50%)";
+        _this2.tags["byte"].element.style.color = color;
+      }); // $view.tags.byte.element.style['text-shadow'] = `2px 0px 5px ${color}, -2px 0px 5px ${color}`
     }
   }]);
 
