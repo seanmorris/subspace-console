@@ -13,7 +13,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 var target = Symbol('target');
 var index = 0;
-var Target = (_Target = {}, _defineProperty(_Target, _Mixin.Mixin.constructor, function () {
+var Target = (_Target = {}, _defineProperty(_Target, _Mixin.Mixin.Constructor, function () {
   try {
     this[target] = new EventTarget();
   } catch (error) {

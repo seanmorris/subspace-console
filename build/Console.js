@@ -90,7 +90,6 @@ var Console = /*#__PURE__*/function (_View) {
 
       var scroller = _this.scroller;
       var scrollTo = scroller === window ? document.body.scrollHeight : scroller.scrollHeight;
-      console.log(scroller, scroller.scrollHeight);
 
       _this.onNextFrame(function () {
         scroller.scrollTo({
@@ -287,6 +286,7 @@ var Console = /*#__PURE__*/function (_View) {
                 this.args.output.push("   Subspace Console 0.29a \xA92018-2020 Sean Morris");
 
                 for (var cmd in this.path) {
+                  console.log(cmd, this.path[cmd]);
                   this.args.output.push(" * ".concat(cmd, " - ").concat(this.path[cmd].helpText));
                   this.path[cmd].useText && this.args.output.push("   ".concat(this.path[cmd].useText));
                   this.args.output.push("  ");

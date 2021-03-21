@@ -5,7 +5,7 @@ const target = Symbol('target');
 let index = 0;
 
 export const Target = {
-	[Mixin.constructor]()
+	[Mixin.Constructor]()
 	{
 		try
 		{

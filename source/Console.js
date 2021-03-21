@@ -272,6 +272,8 @@ export class Console extends View {
 
 						for(const cmd in this.path)
 						{
+							console.log(cmd, this.path[cmd]);
+
 							this.args.output.push(` * ${cmd} - ${this.path[cmd].helpText}`);
 							this.path[cmd].useText
 							&& this.args.output.push(`   ${this.path[cmd].useText}`);

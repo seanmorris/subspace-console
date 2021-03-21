@@ -1,13 +1,15 @@
+const IGNORE = 0;
 const INSERT = 1;
-const ENTER = 2;
-const LEAVE = 3;
+const ENTER  = 2;
+const LEAVE  = 3;
+const HOME   = 4;
 
 class Chunk
 {
 	constructor()
 	{
 		this.depth = 0;
-		this.match = 0;
+		this.match = null;
 		this.type  = 'normal';
 		this.list  = [];
 	}
@@ -182,50 +184,66 @@ class Transformer
 	}
 }
 
+// const tokens = {
+// 	space:       /\s+/s
+// 	, word:      /\w+/
+// 	, down:      /</
+// 	, up:        />/
+// 	, escape:    /\\/
+// 	, n:         /n/
+// 	, character: /./
+// };
+
+// const modes  = {
+// 	normal:{
+// 		escape:  ['escape', ENTER]
+// 		, space: INSERT
+// 		, word:  INSERT
+// 		, up:    ['up',   ENTER, INSERT]
+// 		, down:  ['down', ENTER, INSERT]
+// 	}
+// 	, elevate:{
+// 		escape:  ['escape', ENTER]
+// 		, space: INSERT
+// 		, word:  INSERT
+// 		, up:    ['up',   ENTER]
+// 		, down:  ['down', ENTER]
+// 	}
+// 	, escape:{
+// 		character: [INSERT, LEAVE]
+// 	}
+// 	, up:{
+// 		space:  [LEAVE, 'elevate', ENTER, INSERT]
+// 		, word: [LEAVE, 'elevate', ENTER, INSERT]
+// 		, up:   [INSERT, LEAVE]
+// 		, down: LEAVE
+// 	}
+// 	, down:{
+// 		space:  [LEAVE, INSERT, LEAVE]
+// 		, word: [LEAVE, INSERT, LEAVE]
+// 		, up:   [LEAVE, 'up', ENTER]
+// 		, down: [INSERT, LEAVE]
+// 	}
+// };
+
 const tokens = {
-	space:       /\s+/s
-	, word:      /\w+/
-	, down:      /</
-	, up:        />/
-	, escape:    /\\/
-	, n:         /n/
-	, character: /./
+	esc:          /\u1b\u5b/
+	, parameters: /(\d+;)+m/
+	, character:  /./
 };
 
 const modes  = {
 	normal:{
-		escape:  ['escape', ENTER]
-		, space: INSERT
-		, word:  INSERT
-		, up:    ['up',   ENTER, INSERT]
-		, down:  ['down', ENTER, INSERT]
+		character: {
+			esc: ['parameters', ENTER, INSERT, LEAVE]
+		}
 	}
-	, elevate:{
-		escape:  ['escape', ENTER]
-		, space: INSERT
-		, word:  INSERT
-		, up:    ['up',   ENTER]
-		, down:  ['down', ENTER]
-	}
-	, escape:{
-		character: [INSERT, LEAVE]
-	}
-	, up:{
-		space:  [LEAVE, 'elevate', ENTER, INSERT]
-		, word: [LEAVE, 'elevate', ENTER, INSERT]
-		, up:   [INSERT, LEAVE]
-		, down: LEAVE
-	}
-	, down:{
-		space:  [LEAVE, INSERT, LEAVE]
-		, word: [LEAVE, INSERT, LEAVE]
-		, up:   [LEAVE, 'up', ENTER]
-		, down: [INSERT, LEAVE]
-	}
-};
+}
 
 const parser = new Parser(tokens, modes);
-const syntax = parser.parse('The >quick \\<brown\\\\ fox<< jumps over< the lazy dog\\n');
+const syntax = parser.parse(
+	'The >quick \\<brown\\\\ fox<< jumps over< the lazy dog\\n'
+);
 
 process.stdout.write(JSON.stringify(syntax, null, 2) + '\n');
 

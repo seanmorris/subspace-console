@@ -7,7 +7,5 @@ exports.Path = void 0;
 
 var _Task = require("subspace-console/Task");
 
-var Path = {
-  task: _Task.Task
-};
+var Path = {};
 exports.Path = Path;
