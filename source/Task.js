@@ -102,10 +102,10 @@ export class Task extends Mixin.with(Target, TaskSignals)
 
 	[Execute]()
 	{
+		const onOutputEvent = ({detail}) => this.write(detail);
+
 		if(prev)
 		{
-			const onOutputEvent = ({detail}) => this.write(detail);
-
 			prev.addEventListener('output', onOutputEvent);
 		}
 

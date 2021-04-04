@@ -7,6 +7,8 @@ exports.Console = void 0;
 
 var _View2 = require("curvature/base/View");
 
+var _Bag = require("curvature/base/Bag");
+
 var _MeltingText = require("./view/MeltingText");
 
 var _Task = require("./Task");
@@ -70,6 +72,8 @@ var Console = /*#__PURE__*/function (_View) {
     _this.routes = {};
     _this.args.passwordMode = false;
     _this.tasks = [];
+    _this.taskList = new _Bag.Bag();
+    _this.taskList.type = _Task.Task;
     _this.max = 512;
     _this.historyCursor = -1;
     _this.history = [];
@@ -88,23 +92,14 @@ var Console = /*#__PURE__*/function (_View) {
         }
       }
 
-      var scroller = _this.scroller;
-      var scrollTo = scroller === window ? document.body.scrollHeight : scroller.scrollHeight;
-
-      _this.onNextFrame(function () {
-        scroller.scrollTo({
-          behavior: 'smooth',
-          left: 0,
-          top: scroller.scrollHeight
-        });
-      });
+      _this.scrollToBottom();
     });
 
     if (allOptions.init) {
       _this.runScript(allOptions.init);
     }
 
-    _this.scroller = allOptions.scroller || window;
+    _this.scroller = allOptions.scroller || document.body;
     _this.path = allOptions.path || {};
     _this.originalInput = '';
     return _this;
@@ -276,17 +271,17 @@ var Console = /*#__PURE__*/function (_View) {
                 break;
 
               case 'z':
+                this.args.output.splice(0);
                 this.args.output.push(new _MeltingText.MeltingText({
-                  input: 'lmao!'
+                  input: '!!!'
                 }));
                 break;
 
               case 'commands':
               case '?':
-                this.args.output.push("   Subspace Console 0.29a \xA92018-2020 Sean Morris");
+                this.args.output.push("   Subspace Console 0.29a \xA92018-2021 Sean Morris");
 
                 for (var cmd in this.path) {
-                  console.log(cmd, this.path[cmd]);
                   this.args.output.push(" * ".concat(cmd, " - ").concat(this.path[cmd].helpText));
                   this.path[cmd].useText && this.args.output.push("   ".concat(this.path[cmd].useText));
                   this.args.output.push("  ");
@@ -457,11 +452,7 @@ var Console = /*#__PURE__*/function (_View) {
 
         default:
           this.historyCursor = -1;
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            left: 0,
-            behavior: 'smooth'
-          });
+          this.scrollToBottom();
           break;
       }
     }
@@ -470,6 +461,19 @@ var Console = /*#__PURE__*/function (_View) {
     value: function cancel(event) {
       event.preventDefault();
       event.stopPropagation();
+    }
+  }, {
+    key: "scrollToBottom",
+    value: function scrollToBottom() {
+      var scroller = (this.scroller === document.body ? window : this.scroller) || window;
+      var scrollTo = (this.scroller === document.body ? this.scroller : document.body).scrollHeight;
+      this.onNextFrame(function () {
+        scroller.scrollTo({
+          behavior: 'smooth',
+          left: 0,
+          top: scrollTo
+        });
+      });
     }
   }]);
 

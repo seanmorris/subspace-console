@@ -1,4 +1,5 @@
 import { View } from 'curvature/base/View';
+import { Bag  } from 'curvature/base/Bag';
 
 import { MeltingText } from './view/MeltingText';
 
@@ -29,6 +30,10 @@ export class Console extends View {
 
 		this.tasks = [];
 
+		this.taskList = new Bag;
+
+		this.taskList.type = Task;
+
 		this.max = 512;
 
 		this.historyCursor = -1;
@@ -52,19 +57,7 @@ export class Console extends View {
 				}
 			}
 
-			const scroller = this.scroller;
-			const scrollTo = scroller === window
-				? document.body.scrollHeight
-				: scroller.scrollHeight;
-
-			this.onNextFrame(() =>{
-				scroller.scrollTo({
-					behavior: 'smooth'
-					, left:   0
-					, top:    scroller.scrollHeight
-				});
-
-			});
+			this.scrollToBottom();
 		});
 
 		if(allOptions.init)
@@ -72,7 +65,7 @@ export class Console extends View {
 			this.runScript(allOptions.init);
 		}
 
-		this.scroller = allOptions.scroller || window;
+		this.scroller = allOptions.scroller || document.body;
 
 		this.path = allOptions.path || {};
 
@@ -261,19 +254,16 @@ export class Console extends View {
 					case 'clear': this.args.output.splice(0); break;
 
 					case 'z':
-						this.args.output.push(
-							new MeltingText({ input: 'lmao!' })
-						);
+						this.args.output.splice(0);
+						this.args.output.push(new MeltingText({ input: '!!!' }));
 						break;
 
 					case 'commands':
 					case '?':
-						this.args.output.push(`   Subspace Console 0.29a ©2018-2020 Sean Morris`);
+						this.args.output.push(`   Subspace Console 0.29a ©2018-2021 Sean Morris`);
 
 						for(const cmd in this.path)
 						{
-							console.log(cmd, this.path[cmd]);
-
 							this.args.output.push(` * ${cmd} - ${this.path[cmd].helpText}`);
 							this.path[cmd].useText
 							&& this.args.output.push(`   ${this.path[cmd].useText}`);
@@ -462,11 +452,7 @@ export class Console extends View {
 
 			default:
 				this.historyCursor = -1;
-				window.scrollTo({
-					top: document.body.scrollHeight,
-					left: 0,
-					behavior: 'smooth'
-				});
+				this.scrollToBottom();
 				break;
 		}
 	}
@@ -475,5 +461,15 @@ export class Console extends View {
 	{
 		event.preventDefault();
 		event.stopPropagation();
+	}
+
+	scrollToBottom()
+	{
+		const scroller = (this.scroller === document.body ? window : this.scroller) || window;
+		const scrollTo = (this.scroller === document.body ? this.scroller : document.body).scrollHeight;
+
+		this.onNextFrame(() =>{
+			scroller.scrollTo({behavior: 'smooth', left: 0, top: scrollTo});
+		});
 	}
 }

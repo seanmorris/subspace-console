@@ -158,13 +158,13 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
     value: function value() {
       var _this2 = this;
 
-      if (prev) {
-        var _onOutputEvent = function _onOutputEvent(_ref) {
-          var detail = _ref.detail;
-          return _this2.write(detail);
-        };
+      var onOutputEvent = function onOutputEvent(_ref) {
+        var detail = _ref.detail;
+        return _this2.write(detail);
+      };
 
-        prev.addEventListener('output', _onOutputEvent);
+      if (prev) {
+        prev.addEventListener('output', onOutputEvent);
       }
 
       console.log(this.title + ' initializing.');
