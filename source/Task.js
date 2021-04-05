@@ -32,8 +32,6 @@ export class Task extends Mixin.with(Target, TaskSignals)
 
 		this.id = taskId++;
 
-		this.thread.finally(() => console.log(this.title + ' closed.'));
-
 		return this;
 	}
 
@@ -69,8 +67,6 @@ export class Task extends Mixin.with(Target, TaskSignals)
 
 	signal(signalName)
 	{
-		console.log(this, `signal::${signalName}`);
-
 		if(this[`signal::${signalName}`])
 		{
 			this[`signal::${signalName}`]();
@@ -104,24 +100,18 @@ export class Task extends Mixin.with(Target, TaskSignals)
 	{
 		const onOutputEvent = ({detail}) => this.write(detail);
 
+		let init = this.init(...this.args);
+
+		const prev = this.prev;
+
 		if(prev)
 		{
 			prev.addEventListener('output', onOutputEvent);
 		}
 
-		console.log(this.title + ' initializing.');
-
-		let init = this.init(...this.args);
-
-		const prev = this.prev;
-
 		if(!(init instanceof Promise))
 		{
 			init = Promise.resolve(init);
-		}
-		else
-		{
-			console.log(this.title + ' continues...');
 		}
 
 		if(prev)
@@ -137,7 +127,7 @@ export class Task extends Mixin.with(Target, TaskSignals)
 		}
 		else
 		{
-			return Promise.allSettled([init]).then(() =>{
+			return Promise.allSettled([init]).then(result =>{
 				try{
 					this.main(undefined);
 					this[Accept]();
@@ -164,6 +154,4 @@ export class Task extends Mixin.with(Target, TaskSignals)
 		return this.status;
 	}
 }
-
-// export class Task extends Target.mix(BaseTask){};
 

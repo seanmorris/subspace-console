@@ -108,45 +108,52 @@ var Console = /*#__PURE__*/function (_View) {
   _createClass(Console, [{
     key: "runCommand",
     value: function runCommand(command) {
-      // console.log(command);
+      var _this2 = this;
+
       if (this.historyCursor != 0) {
         this.history.unshift(command);
       }
 
-      var ret;
+      return new Promise(function (accept) {
+        var task;
 
-      if (command.substring(0, 1) === '/') {
-        if (!this.args.passwordMode) {
-          this.args.output.push(":: ".concat(command));
+        if (command.substring(0, 1) === '/') {
+          if (!_this2.args.passwordMode) {
+            _this2.args.output.push(":: ".concat(command));
+          }
+
+          task = _this2.interpret(command.substr(1));
+        } else if (_this2.tasks.length) {
+          if (!_this2.args.passwordMode) {
+            _this2.args.output.push("".concat(_this2.tasks[0].prompt, " ").concat(command));
+          }
+
+          task = _this2.tasks[0].write(command) || Promise.resolve();
+        } else {
+          if (!_this2.args.passwordMode) {
+            _this2.args.output.push(":: ".concat(command));
+          }
+
+          task = _this2.interpret(command);
         }
 
-        ret = this.interpret(command.substr(1));
-      } else if (this.tasks.length) {
-        if (!this.args.passwordMode) {
-          this.args.output.push("".concat(this.tasks[0].prompt, " ").concat(command));
+        if (!(task instanceof _Task.Task) && !(task instanceof Promise)) {
+          task = Promise.resolve(task);
         }
 
-        ret = this.tasks[0].write(command) || Promise.resolve();
-      } else {
-        if (!this.args.passwordMode) {
-          this.args.output.push(":: ".concat(command));
-        }
-
-        ret = this.interpret(command);
-      }
-
-      if (!(ret instanceof Promise)) {
-        ret = Promise.resolve(ret);
-      }
-
-      this.historyCursor = -1;
-      this.originalInput = this.args.input = '';
-      return ret;
+        _this2.historyCursor = -1;
+        _this2.originalInput = _this2.args.input = '';
+        task.then(function (result) {
+          return accept(result);
+        });
+      })["catch"](function (error) {
+        _this2.args.output.push("Unexpected error: ".concat(error));
+      });
     }
   }, {
     key: "runScript",
     value: function runScript(url) {
-      var _this2 = this;
+      var _this3 = this;
 
       fetch(url + '?api=txt').then(function (response) {
         return response.text();
@@ -161,11 +168,11 @@ var Console = /*#__PURE__*/function (_View) {
           var line = lines.shift();
 
           if (line && line[0] == '!') {
-            _this2.args.output.push(line.substring(1));
+            _this3.args.output.push(line.substring(1));
 
             process(lines);
           } else if (line) {
-            _this2.runCommand(line).then(function () {
+            _this3.runCommand(line).then(function () {
               return process(lines);
             });
           } else {
@@ -179,7 +186,7 @@ var Console = /*#__PURE__*/function (_View) {
   }, {
     key: "postRender",
     value: function postRender() {
-      var _this3 = this;
+      var _this4 = this;
 
       var inputBox = this.tags.input.element;
       var passwordBox = this.tags.password.element;
@@ -199,7 +206,7 @@ var Console = /*#__PURE__*/function (_View) {
         }
       });
       this.args.bindTo('passwordMode', function (v) {
-        _this3.focus(null, v);
+        _this4.focus(null, v);
       }, {
         frame: 1
       });
@@ -231,68 +238,66 @@ var Console = /*#__PURE__*/function (_View) {
     }
   }, {
     key: "interpret",
-    value: function interpret(command) {
-      var _this4 = this;
+    value: function interpret(input) {
+      var _this5 = this;
 
       this.historyCursor = -1;
-      var commands = command.split(/\s*\|\s*/);
-      var task = null;
-      var topTask = null;
+      var expressions = input.split(/\s*\;\s*/);
+      var lastTask = null;
 
-      var _iterator = _createForOfIteratorHelper(commands),
+      var _iterator = _createForOfIteratorHelper(expressions),
           _step;
 
       try {
+        var _loop = function _loop() {
+          var expression = _step.value;
+
+          var task = _this5.pipe(expression.split(/\s*\|\s*/));
+
+          if (task) {
+            _this5.tasks.unshift(task);
+
+            var output = function output(event) {
+              var prompt = task.outPrompt || task.prompt || _this5.args.prompt || '::';
+
+              _this5.args.output.push("".concat(prompt, " ").concat(event.detail));
+            };
+
+            var error = function error(event) {
+              var errorPrompt = task.errorPrompt || '!!';
+
+              _this5.args.output.push("".concat(errorPrompt, " ").concat(event.detail));
+            };
+
+            task.addEventListener('output', output);
+            task.addEventListener('error', error);
+            task.execute();
+            task["catch"](function (error) {
+              return console.error(error);
+            });
+            task["catch"](function (error) {
+              return _this5.args.output.push("!! ".concat(error));
+            });
+            _this5.args.prompt = task.prompt;
+            task["finally"](function (done) {
+              task.removeEventListener('error', error);
+              task.removeEventListener('output', output);
+
+              _this5.tasks.shift();
+
+              if (_this5.tasks.length) {
+                _this5.args.prompt = _this5.tasks[0].prompt;
+              } else {
+                _this5.args.prompt = '::';
+              }
+            });
+          }
+
+          lastTask = task;
+        };
+
         for (_iterator.s(); !(_step = _iterator.n()).done;) {
-          var commandString = _step.value;
-          var args = commandString.trim().split(' ');
-
-          var _command = args.shift().trim();
-
-          if (_command.length > 1 && _command.substr(-1) == "?") {
-            _command = _command.substr(0, _command.length - 1);
-
-            if (_command in this.path) {
-              this.args.output.push("?? ".concat(this.path[_command].helpText));
-              this.args.output.push("?? ".concat(this.path[_command].useText));
-            }
-
-            continue;
-          }
-
-          if (_command in this.path) {
-            var cmdClass = this.path[_command]; // console.log(cmdClass);
-
-            task = new cmdClass(args, task, this);
-          } else {
-            switch (_command) {
-              case 'clear':
-                this.args.output.splice(0);
-                break;
-
-              case 'z':
-                this.args.output.splice(0);
-                this.args.output.push(new _MeltingText.MeltingText({
-                  input: '!!!'
-                }));
-                break;
-
-              case 'commands':
-              case '?':
-                this.args.output.push("   Subspace Console 0.29a \xA92018-2021 Sean Morris");
-
-                for (var cmd in this.path) {
-                  this.args.output.push(" * ".concat(cmd, " - ").concat(this.path[cmd].helpText));
-                  this.path[cmd].useText && this.args.output.push("   ".concat(this.path[cmd].useText));
-                  this.args.output.push("  ");
-                }
-
-                break;
-
-              default:
-                this.args.output.push("!! Bad command: ".concat(_command));
-            }
-          }
+          _loop();
         }
       } catch (err) {
         _iterator.e(err);
@@ -300,46 +305,64 @@ var Console = /*#__PURE__*/function (_View) {
         _iterator.f();
       }
 
-      if (task) {
-        this.tasks.unshift(task);
+      return lastTask;
+    }
+  }, {
+    key: "pipe",
+    value: function pipe(commands, previousTask) {
+      var task = null;
+      var commandString = commands.shift();
+      var args = commandString.trim().split(' ');
+      var command = args.shift().trim();
 
-        var output = function output(event) {
-          var prompt = task.outPrompt || task.prompt || _this4.args.prompt || '::';
+      if (command.length > 1 && command.substr(-1) == "?") {
+        command = command.substr(0, command.length - 1);
 
-          _this4.args.output.push("".concat(prompt, " ").concat(event.detail));
-        };
+        if (command in this.path) {
+          this.args.output.push("?? ".concat(this.path[command].helpText));
+          this.args.output.push("?? ".concat(this.path[command].useText));
+        }
 
-        var error = function error(event) {
-          var errorPrompt = task.errorPrompt || '!!';
-
-          _this4.args.output.push("".concat(errorPrompt, " ").concat(event.detail));
-        };
-
-        task.addEventListener('output', output);
-        task.addEventListener('error', error);
-        task.execute();
-        task["catch"](function (error) {
-          return console.error(error);
-        });
-        task["catch"](function (error) {
-          return _this4.args.output.push("!! ".concat(error));
-        });
-        this.args.prompt = task.prompt;
-        task["finally"](function (done) {
-          task.removeEventListener('error', error);
-          task.removeEventListener('output', output);
-
-          _this4.tasks.shift();
-
-          if (_this4.tasks.length) {
-            _this4.args.prompt = _this4.tasks[0].prompt;
-          } else {
-            _this4.args.prompt = '::';
-          }
-        });
+        return;
       }
 
-      this.args.input = '';
+      if (command in this.path) {
+        var cmdClass = this.path[command];
+        task = new cmdClass(args, previousTask, this);
+      } else {
+        switch (command) {
+          case 'clear':
+            this.args.output.splice(0);
+            break;
+
+          case 'z':
+            this.args.output.splice(0);
+            this.args.output.push(new _MeltingText.MeltingText({
+              input: '!!!'
+            }));
+            break;
+
+          case 'commands':
+          case '?':
+            this.args.output.push("   Subspace Console 0.29a \xA92018-2021 Sean Morris");
+
+            for (var cmd in this.path) {
+              this.args.output.push(" * ".concat(cmd, " - ").concat(this.path[cmd].helpText));
+              this.path[cmd].useText && this.args.output.push("   ".concat(this.path[cmd].useText));
+              this.args.output.push("  ");
+            }
+
+            break;
+
+          default:
+            this.args.output.push("!! Bad command: ".concat(command));
+        }
+      }
+
+      if (commands.length) {
+        return this.pipe(commands, task);
+      }
+
       return task;
     }
   }, {
@@ -365,7 +388,7 @@ var Console = /*#__PURE__*/function (_View) {
   }, {
     key: "keyup",
     value: function keyup(event, autocomplete) {
-      var _this5 = this;
+      var _this6 = this;
 
       switch (event.key) {
         case 'ArrowDown':
@@ -379,7 +402,7 @@ var Console = /*#__PURE__*/function (_View) {
 
           this.args.input = this.history[this.historyCursor];
           this.onNextFrame(function () {
-            var element = _this5.tags.input.element;
+            var element = _this6.tags.input.element;
             element.selectionStart = element.value.length;
             element.selectionEnd = element.value.length;
           });
@@ -399,7 +422,7 @@ var Console = /*#__PURE__*/function (_View) {
 
           this.args.input = this.history[this.historyCursor];
           this.onNextFrame(function () {
-            var element = _this5.tags.input.element;
+            var element = _this6.tags.input.element;
             element.selectionStart = element.value.length;
             element.selectionEnd = element.value.length;
           });
@@ -409,7 +432,7 @@ var Console = /*#__PURE__*/function (_View) {
           if (this.tasks.length) {
             console.log(_Task.Task.KILL);
             this.tasks[0]["finally"](function () {
-              return _this5.args.output.push(":: Killed.");
+              return _this6.args.output.push(":: Killed.");
             });
             this.tasks[0].signal(_Task.Task.KILL);
             this.tasks[0].signal('kill');
@@ -448,6 +471,7 @@ var Console = /*#__PURE__*/function (_View) {
           }
 
           this.runCommand(this.args.input);
+          this.args.input = '';
           break;
 
         default:

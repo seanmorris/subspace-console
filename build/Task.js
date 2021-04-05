@@ -84,11 +84,6 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
       _this[Reject] = reject;
     });
     _this.id = taskId++;
-
-    _this.thread["finally"](function () {
-      return console.log(_this.title + ' closed.');
-    });
-
     return _possibleConstructorReturn(_this, _assertThisInitialized(_this));
   }
 
@@ -129,8 +124,6 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
   }, {
     key: "signal",
     value: function signal(signalName) {
-      console.log(this, "signal::".concat(signalName));
-
       if (this["signal::".concat(signalName)]) {
         this["signal::".concat(signalName)]();
       }
@@ -163,18 +156,15 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
         return _this2.write(detail);
       };
 
+      var init = this.init.apply(this, _toConsumableArray(this.args));
+      var prev = this.prev;
+
       if (prev) {
         prev.addEventListener('output', onOutputEvent);
       }
 
-      console.log(this.title + ' initializing.');
-      var init = this.init.apply(this, _toConsumableArray(this.args));
-      var prev = this.prev;
-
       if (!(init instanceof Promise)) {
         init = Promise.resolve(init);
-      } else {
-        console.log(this.title + ' continues...');
       }
 
       if (prev) {
@@ -190,7 +180,7 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
           return _this2.done();
         });
       } else {
-        return Promise.allSettled([init]).then(function () {
+        return Promise.allSettled([init]).then(function (result) {
           try {
             _this2.main(undefined);
 
@@ -219,7 +209,6 @@ var Task = /*#__PURE__*/function (_Mixin$with) {
   }]);
 
   return Task;
-}(_Mixin.Mixin["with"](_Target.Target, _TaskSignals.TaskSignals)); // export class Task extends Target.mix(BaseTask){};
-
+}(_Mixin.Mixin["with"](_Target.Target, _TaskSignals.TaskSignals));
 
 exports.Task = Task;

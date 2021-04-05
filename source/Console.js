@@ -8,7 +8,8 @@ import { Path } from './Path';
 
 import { rawquire } from './rawquire.macro';
 
-export class Console extends View {
+export class Console extends View
+{
 	constructor(options = {}, args = {})
 	{
 		super(args);
@@ -74,53 +75,59 @@ export class Console extends View {
 
 	runCommand(command)
 	{
-		// console.log(command);
-
 		if(this.historyCursor != 0)
 		{
 			this.history.unshift(command);
 		}
 
-		let ret;
+		return new Promise(accept => {
 
-		if(command.substring(0, 1) === '/')
-		{
-			if(!this.args.passwordMode)
+			let task;
+
+			if(command.substring(0, 1) === '/')
 			{
-				this.args.output.push(`:: ${command}`);
+				if(!this.args.passwordMode)
+				{
+					this.args.output.push(`:: ${command}`);
+				}
+
+				task = this.interpret(command.substr(1));
+			}
+			else if(this.tasks.length)
+			{
+				if(!this.args.passwordMode)
+				{
+					this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+				}
+
+				task = this.tasks[0].write(command) || Promise.resolve();
+			}
+			else
+			{
+				if(!this.args.passwordMode)
+				{
+					this.args.output.push(`:: ${command}`);
+				}
+
+				task = this.interpret(command);
 			}
 
-			ret = this.interpret(command.substr(1));
-		}
-		else if(this.tasks.length)
-		{
-			if(!this.args.passwordMode)
+			if(!(task instanceof Task) && !(task instanceof Promise))
 			{
-				this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+				task = Promise.resolve(task);
 			}
 
-			ret = this.tasks[0].write(command) || Promise.resolve();
-		}
-		else
-		{
-			if(!this.args.passwordMode)
-			{
-				this.args.output.push(`:: ${command}`);
-			}
+			this.historyCursor = -1;
 
-			ret = this.interpret(command);
-		}
+			this.originalInput = this.args.input = '';
 
-		if(!(ret instanceof Promise))
-		{
-			ret = Promise.resolve(ret);
-		}
+			task.then(result => accept(result));
 
-		this.historyCursor = -1;
+		}).catch(error => {
 
-		this.originalInput = this.args.input = '';
+			this.args.output.push(`Unexpected error: ${error}`);
 
-		return ret;
+		});
 	}
 
 	runScript(url)
@@ -212,117 +219,131 @@ export class Console extends View {
 		this.tags.input.element.focus();
 	}
 
-	interpret(command)
+	interpret(input)
 	{
 		this.historyCursor = -1;
 
-		const commands = command.split(/\s*\|\s*/);
+		const expressions = input.split(/\s*\;\s*/);
 
-		let task = null;
-		let topTask = null;
+		let lastTask = null;
 
-		for(const commandString of commands)
+		for(const expression of expressions)
 		{
-			const args = commandString.trim().split(' ');
-			const command = args.shift().trim();
+			const task = this.pipe( expression.split(/\s*\|\s*/) );
 
-			if(command.length > 1 && command.substr(-1) == "?")
+			if(task)
 			{
-				command = command.substr(0, command.length - 1);
+				this.tasks.unshift(task);
 
-				if(command in this.path)
-				{
-					this.args.output.push(`?? ${this.path[command].helpText}`);
-					this.args.output.push(`?? ${this.path[command].useText}`);
+				const output = (event) => {
+					const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
+
+					this.args.output.push(`${prompt} ${event.detail}`);
+				};
+
+				const error  = (event) => {
+					const errorPrompt = task.errorPrompt || '!!';
+
+					this.args.output.push(`${errorPrompt} ${event.detail}`);
 				}
 
-				continue;
+				task.addEventListener('output', output);
+				task.addEventListener('error', error);
+
+				task.execute();
+
+				task.catch(error  => console.error(error));
+				task.catch(error  => this.args.output.push(`!! ${error}`));
+
+				this.args.prompt = task.prompt;
+
+				task.finally(done => {
+					task.removeEventListener('error', error);
+					task.removeEventListener('output', output);
+
+					this.tasks.shift();
+
+					if(this.tasks.length)
+					{
+						this.args.prompt = this.tasks[0].prompt;
+					}
+					else
+					{
+						this.args.prompt = '::';
+					}
+				});
 			}
+
+			lastTask = task;
+		}
+
+		return lastTask;
+	}
+
+	pipe(commands, previousTask)
+	{
+		let task = null;
+
+		const commandString = commands.shift();
+
+		const args = commandString.trim().split(' ');
+
+		let command = args.shift().trim();
+
+		if(command.length > 1 && command.substr(-1) == "?")
+		{
+			command = command.substr(0, command.length - 1);
 
 			if(command in this.path)
 			{
-				const cmdClass = this.path[command];
-
-				// console.log(cmdClass);
-
-				task = new cmdClass(args, task, this);
+				this.args.output.push(`?? ${this.path[ command ].helpText}`);
+				this.args.output.push(`?? ${this.path[ command ].useText}`);
 			}
-			else
-			{
-				switch (command)
-				{
-					case 'clear': this.args.output.splice(0); break;
 
-					case 'z':
-						this.args.output.splice(0);
-						this.args.output.push(new MeltingText({ input: '!!!' }));
-						break;
-
-					case 'commands':
-					case '?':
-						this.args.output.push(`   Subspace Console 0.29a ©2018-2021 Sean Morris`);
-
-						for(const cmd in this.path)
-						{
-							this.args.output.push(` * ${cmd} - ${this.path[cmd].helpText}`);
-							this.path[cmd].useText
-							&& this.args.output.push(`   ${this.path[cmd].useText}`);
-
-							this.args.output.push(`  `);
-
-						}
-						break;
-
-					default:
-						this.args.output.push(`!! Bad command: ${command}`);
-				}
-			}
+			return;
 		}
 
-		if(task)
+		if(command in this.path)
 		{
-			this.tasks.unshift(task);
+			const cmdClass = this.path[command];
 
-			const output = (event) => {
-				const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
+			task = new cmdClass(args, previousTask, this);
+		}
+		else
+		{
+			switch (command)
+			{
+				case 'clear': this.args.output.splice(0); break;
 
-				this.args.output.push(`${prompt} ${event.detail}`);
-			};
+				case 'z':
+					this.args.output.splice(0);
+					this.args.output.push(new MeltingText({ input: '!!!' }));
+					break;
 
-			const error  = (event) => {
-				const errorPrompt = task.errorPrompt || '!!';
+				case 'commands':
+				case '?':
+					this.args.output.push(`   Subspace Console 0.29a ©2018-2021 Sean Morris`);
 
-				this.args.output.push(`${errorPrompt} ${event.detail}`);
+					for(const cmd in this.path)
+					{
+						this.args.output.push(` * ${cmd} - ${this.path[cmd].helpText}`);
+						this.path[cmd].useText
+						&& this.args.output.push(`   ${this.path[cmd].useText}`);
+
+						this.args.output.push(`  `);
+
+					}
+					break;
+
+				default:
+					this.args.output.push(`!! Bad command: ${command}`);
 			}
-
-			task.addEventListener('output', output);
-			task.addEventListener('error', error);
-
-			task.execute();
-
-			task.catch(error  => console.error(error));
-			task.catch(error  => this.args.output.push(`!! ${error}`));
-
-			this.args.prompt = task.prompt;
-
-			task.finally(done => {
-				task.removeEventListener('error', error);
-				task.removeEventListener('output', output);
-
-				this.tasks.shift();
-
-				if(this.tasks.length)
-				{
-					this.args.prompt = this.tasks[0].prompt;
-				}
-				else
-				{
-					this.args.prompt = '::';
-				}
-			});
 		}
 
-		this.args.input = '';
+		if(commands.length)
+		{
+			return this.pipe(commands, task);
+		}
 
 		return task;
 	}
@@ -447,6 +468,7 @@ export class Console extends View {
 				}
 
 				this.runCommand(this.args.input);
+				this.args.input = '';
 
 				break;
 
