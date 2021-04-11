@@ -18,6 +18,10 @@ body {
 	flex-wrap: nowrap;
 }
 
+.terminal .output p > span:first-child {
+	white-space: pre;
+}
+
 .terminal .output p > span {
 	display: block;
 }
@@ -89,4 +93,8 @@ body {
 
 .terminal.inverted .byte {
 	filter: saturate(250%) brightness(200%);
+}
+
+span.text {
+
 }

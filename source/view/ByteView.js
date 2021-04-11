@@ -6,7 +6,7 @@ export class ByteView extends View
 	{
 		super(args);
 
-		this.template = `<span cv-each = "bytes:byte:b">
+		this.template = `<span class = "bytes" cv-each = "bytes:byte:b">
 			<span class = "byte" style = "width:2em;" cv-ref  = "byte:curvature/base/Tag"></span>
 		</span>`;
 	}

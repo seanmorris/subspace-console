@@ -14,19 +14,19 @@
     "babel-preset-es2015": "^6.24.1"
   },
   "files": [
-		"dist/layout.css",
-		"dist/subspace-console.js",
-		"mixin/MixPromise.js",
-		"mixin/Target.js",
-		"mixin/TaskSignals.js",
-		"parse/Parse.js",
-		"style/layout.css",
-		"view/BinaryMessageView.js",
-		"view/ByteView.js",
-		"view/MeltingText.js",
-		"view/TextMessageView.js",
-		"Console.js",
-		"Path.js",
-		"Task.js"
-	]
+    "dist/layout.css",
+    "dist/subspace-console.js",
+    "mixin/MixPromise.js",
+    "mixin/Target.js",
+    "mixin/TaskSignals.js",
+    "parse/Parse.js",
+    "style/layout.css",
+    "view/BinaryMessageView.js",
+    "view/ByteView.js",
+    "view/MeltingText.js",
+    "view/TextMessageView.js",
+    "Console.js",
+    "Path.js",
+    "Task.js"
+  ]
 }

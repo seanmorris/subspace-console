@@ -2,6 +2,7 @@ import { View } from 'curvature/base/View';
 import { Bag  } from 'curvature/base/Bag';
 
 import { MeltingText } from './view/MeltingText';
+import { EchoMessage } from './view/EchoMessage';
 
 import { Task } from './Task';
 import { Path } from './Path';
@@ -88,7 +89,9 @@ export class Console extends View
 			{
 				if(!this.args.passwordMode)
 				{
-					this.args.output.push(`:: ${command}`);
+					const output = new EchoMessage({message:command});
+
+					this.args.output.push(output);
 				}
 
 				task = this.interpret(command.substr(1));
@@ -97,7 +100,9 @@ export class Console extends View
 			{
 				if(!this.args.passwordMode)
 				{
-					this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+					const output = new EchoMessage({message:command, prompt:this.tasks[0].prompt});
+
+					this.args.output.push(output);
 				}
 
 				task = this.tasks[0].write(command) || Promise.resolve();
@@ -110,11 +115,19 @@ export class Console extends View
 				}
 
 				task = this.interpret(command);
+
+				// this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+
+				const output = new EchoMessage({message:command});
+
+				this.args.output.push(output);
 			}
 
 			if(!(task instanceof Task) && !(task instanceof Promise))
 			{
 				task = Promise.resolve(task);
+
+				this.args.output.push(`:: ${command}`);
 			}
 
 			this.historyCursor = -1;

@@ -11,6 +11,8 @@ var _Bag = require("curvature/base/Bag");
 
 var _MeltingText = require("./view/MeltingText");
 
+var _EchoMessage = require("./view/EchoMessage");
+
 var _Task = require("./Task");
 
 var _Path = require("./Path");
@@ -119,13 +121,22 @@ var Console = /*#__PURE__*/function (_View) {
 
         if (command.substring(0, 1) === '/') {
           if (!_this2.args.passwordMode) {
-            _this2.args.output.push(":: ".concat(command));
+            var output = new _EchoMessage.EchoMessage({
+              message: command
+            });
+
+            _this2.args.output.push(output);
           }
 
           task = _this2.interpret(command.substr(1));
         } else if (_this2.tasks.length) {
           if (!_this2.args.passwordMode) {
-            _this2.args.output.push("".concat(_this2.tasks[0].prompt, " ").concat(command));
+            var _output = new _EchoMessage.EchoMessage({
+              message: command,
+              prompt: _this2.tasks[0].prompt
+            });
+
+            _this2.args.output.push(_output);
           }
 
           task = _this2.tasks[0].write(command) || Promise.resolve();
@@ -134,11 +145,19 @@ var Console = /*#__PURE__*/function (_View) {
             _this2.args.output.push(":: ".concat(command));
           }
 
-          task = _this2.interpret(command);
+          task = _this2.interpret(command); // this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+
+          var _output2 = new _EchoMessage.EchoMessage({
+            message: command
+          });
+
+          _this2.args.output.push(_output2);
         }
 
         if (!(task instanceof _Task.Task) && !(task instanceof Promise)) {
           task = Promise.resolve(task);
+
+          _this2.args.output.push(":: ".concat(command));
         }
 
         _this2.historyCursor = -1;
