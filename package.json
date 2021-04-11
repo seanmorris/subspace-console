@@ -23,6 +23,7 @@
     "style/layout.css",
     "view/BinaryMessageView.js",
     "view/ByteView.js",
+    "view/EchoMessage.js",
     "view/MeltingText.js",
     "view/TextMessageView.js",
     "Console.js",
