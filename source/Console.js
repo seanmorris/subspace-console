@@ -8,6 +8,9 @@ import { Path } from './Path';
 
 import { rawquire } from './rawquire.macro';
 
+import { Renderer as AnsiRenderer } from './ansi/Renderer';
+import { Parser as AnsiParser } from './ansi/Parser';
+
 export class Console extends View
 {
 	constructor(options = {}, args = {})
@@ -223,6 +226,11 @@ export class Console extends View
 	{
 		this.historyCursor = -1;
 
+		input = input.replace(/\\./, x => {
+			console.log(x);
+			return x;
+		});
+
 		const expressions = input.split(/\s*\;\s*/);
 
 		let lastTask = null;
@@ -238,7 +246,15 @@ export class Console extends View
 				const output = (event) => {
 					const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
 
-					this.args.output.push(`${prompt} ${event.detail}`);
+					if(typeof event.detail === 'object')
+					{
+						this.args.output.push(event.detail);
+					}
+					else
+					{
+						this.args.output.push(`${prompt} ${event.detail}`);
+					}
+
 				};
 
 				const error  = (event) => {
