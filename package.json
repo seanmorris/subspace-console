@@ -4,7 +4,7 @@
   "author": "Sean Morris <subspace@seanmorr.is> (https://seanmorr.is)",
   "version": "0.0.1-e",
   "dependencies": {
-    "sixgram": "^0.0.2"
+    "sixgram": "^0.0.2-b"
   },
   "devDependencies": {
     "@babel/cli": "^7.11.6",

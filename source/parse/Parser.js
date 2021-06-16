@@ -4,6 +4,9 @@ const ENTER  = 2;
 const LEAVE  = 3;
 const HOME   = 4;
 
+const colors16  = require('./colors-16');
+const colors255 = require('./colors-255');
+
 class Chunk
 {
 	constructor()
@@ -53,21 +56,19 @@ class Parser
 					continue;
 				}
 
-
 				if(!mode[tokenName])
 				{
 					throw new Error(`Invalid token type "${tokenName}" found in mode "${this.mode}".`);
 					continue;
 				}
 
-				const value  = search[0];
+				const value = search[0];
+
 				const actions = typeof mode[tokenName] === 'object'
 					? mode[tokenName]
 					: [mode[tokenName]];
 
 				matched = true;
-
-				console.log(chunk.type,chunk.depth,value);
 
 				this.index += value.length;
 
@@ -95,15 +96,17 @@ class Parser
 					{
 						case INSERT:
 							chunk.list.push(value);
-
 							break;
 
 						case ENTER:
 
-							const newChunk = new Chunk;
-							newChunk.depth = chunk.depth + 1;
-							newChunk.match = value;
-							newChunk.type  = type;
+							const newChunk  = new Chunk;
+
+							newChunk.depth  = chunk.depth + 1;
+							newChunk.match  = value;
+							newChunk.groups = [...value.match(token)].slice(1);
+							newChunk.mode   = type;
+							newChunk.type   = tokenName;
 
 							chunk.list.push(newChunk);
 							this.stack.push(chunk);
@@ -116,15 +119,23 @@ class Parser
 						case LEAVE:
 							if(!this.stack.length)
 							{
-								console.log(this.mode, `"${value}"`, chunk);
-								throw new Error(`Already at the top of the stack.`)
+								// throw new Warning(`Already at the top of the stack.`)
+							}
+							else
+							{
+
+								chunk = this.stack.pop();
+
+								this.mode = chunk.type;
+								mode = this.modes[this.mode];
+
 							}
 
-							chunk = this.stack.pop();
+							break;
 
-							this.mode = chunk.type;
-							mode = this.modes[this.mode];
-
+						case HOME:
+							this.stack.splice(0);
+							mode = this.modes['normal'];
 							break;
 					}
 				}
@@ -160,14 +171,7 @@ class Transformer
 
 		for(const i in tree.list)
 		{
-			const chunk = tree.list[i];
-
-			if(typeof chunk === 'object')
-			{
-				output += this.process(chunk);
-
-				continue;
-			}
+			let chunk = tree.list[i];
 
 			if(this.ops[tree.type])
 			{
@@ -227,32 +231,303 @@ class Transformer
 // };
 
 const tokens = {
-	esc:          /\u1b\u5b/
-	, parameters: /(\d+;)+m/
-	, character:  /./
+	reset:         /\u001b\[(0)m/
+	, esc:         /\u001b\[(\d+);?(\d+)?;?([\d;]*)./
+	, characters:  /[^\u001b]+/
 };
 
 const modes  = {
 	normal:{
-		character: {
-			esc: ['parameters', ENTER, INSERT, LEAVE]
-		}
-	}
+		reset: [IGNORE, ENTER, LEAVE]
+		, esc: [IGNORE, ENTER, LEAVE]
+		, characters: [INSERT]
+	},
 }
 
-const parser = new Parser(tokens, modes);
-const syntax = parser.parse(
-	'The >quick \\<brown\\\\ fox<< jumps over< the lazy dog\\n'
-);
+const readline = require('readline');
 
-process.stdout.write(JSON.stringify(syntax, null, 2) + '\n');
-
-const change = new Transformer({
-	elevate:  (x) => String(x).toUpperCase()
-	, escape: (x) => x === 'n' ? "\n" : x
-	, normal: (x) => String(x)
+var rl = readline.createInterface({
+	input: process.stdin,
+	output: process.stdout,
+	terminal: false
 });
 
-const output = change.process(syntax);
+rl.on('line', (line) => {
+	const parser = new Parser(tokens, modes);
+	const syntax = parser.parse(line);
 
-process.stdout.write(output + '\n', null, 2);
+	// process.stdout.write(JSON.stringify(syntax, null, 2) + '\n');
+
+	let style = {};
+
+	const change = new Transformer({
+		normal:   (chunk, parent) => {
+
+			if(typeof chunk === 'string')
+			{
+				return chunk;
+			}
+
+			if(typeof chunk === 'object')
+			{
+				if(chunk.type === 'esc' || chunk.type === 'reset')
+				{
+					let styleString = '';
+
+					for(g in chunk.groups)
+					{
+						const group = Number(chunk.groups[g]);
+
+
+						for([key, val] of Object.entries(style))
+						{
+							styleString += `${key}: ${val}; `;
+						}
+
+						switch(group)
+						{
+							case 0:
+								for(key in style)
+								{
+									style[key] = 'initial'
+
+									if(key === 'color')
+									{
+										style[key] = 'var(--fgColor)'
+									}
+
+									if(key === 'background-color')
+									{
+										style[key] = 'var(--bgColor)'
+									}
+								}
+								break;
+
+							case 1:
+								style['filter'] = 'brightness(1.5) contrast(0.5)';
+								style['opacity'] = 1;
+								break;
+
+							case 2:
+								style['filter'] = 'brightness(0.5) contrast(1.5)';
+								style['opacity'] = 0.75;
+								break;
+
+							case 3:
+								style['font-style'] = 'italic';
+								break;
+
+							case 4:
+								style['text-decoration'] = 'underline';
+								break;
+
+							case 5:
+								style['animation'] = 'var(--ansiBlink)';
+								break;
+
+							case 7:
+								style['filter'] = 'invert(1) contrast(1.5)';
+								break;
+
+							case 8:
+								style['opacity'] = 0.1;
+								break;
+
+							case 9:
+								style['text-decoration'] = 'line-through';
+								break;
+
+							case 10:
+								style['font-family'] = 'var(--base-font))';
+								break;
+
+							case 11:
+							case 12:
+							case 13:
+							case 14:
+							case 15:
+							case 16:
+							case 17:
+							case 18:
+							case 19:
+								style['font-family'] = `var(--alt-font-no-${group})`;
+								break;
+
+							case 20:
+								style['font-family'] = 'var(--alt-font-fraktur)';
+								break;
+
+							case 21:
+								style['font-weight'] = 'initial';
+								break;
+
+							case 22:
+								style['font-weight'] = 'initial';
+								break;
+
+							case 23:
+								style['font-style'] = 'fractur';
+								break;
+
+							case 24:
+								style['text-decoration'] = 'none';
+								break;
+
+							case 25:
+								style['animation'] = 'none';
+								break;
+
+							case 27:
+								style['filter'] = 'initial';
+								break;
+
+							case 28:
+								style['opacity'] = 'initial';
+								break;
+
+							case 29:
+								style['text-decoration'] = 'initial';
+								break;
+
+							case 30:
+								style['color'] = pallete.black;
+								break;
+
+							case 31:
+								style['color'] = pallete.red;
+								break;
+
+							case 32:
+								style['color'] = pallete.green;
+								break;
+
+							case 33:
+								style['color'] = pallete.yellow;
+								break;
+
+							case 34:
+								style['color'] = pallete.blue;
+								break;
+
+							case 35:
+								style['color'] = pallete.magenta;
+								break;
+
+							case 36:
+								style['color'] = pallete.cyan;
+								break;
+
+							case 37:
+								style['color'] = pallete.white;
+								break;
+
+							case 38:
+
+								if(chunk.groups[1] == 2)
+								{
+									const [r,g,b] = chunk.groups[g+1].split(';');
+
+									style['color'] = `rgb(${r},${g},${b})`;
+								}
+
+								if(chunk.groups[1] == 5)
+								{
+									const {r,g,b} = oneByte[ Number(chunk.groups[g+1]) ];
+
+									style['color'] = `rgb(${r},${g},${b})`;
+								}
+
+								break;
+
+							case 39:
+								style['color'] = 'var(--fgColor)';
+								break;
+
+							case 40:
+								style['background-color'] = pallete.black;
+								break;
+
+							case 41:
+								style['background-color'] = pallete.red;
+								break;
+
+							case 42:
+								style['background-color'] = pallete.green;
+								break;
+
+							case 43:
+								style['background-color'] = pallete.yellow;
+								break;
+
+							case 44:
+								style['background-color'] = pallete.blue;
+								break;
+
+							case 45:
+								style['background-color'] = pallete.magenta;
+								break;
+
+							case 46:
+								style['background-color'] = pallete.cyan;
+								break;
+
+							case 47:
+								style['background-color'] = pallete.white;
+								break;
+
+							case 38:
+
+								if(chunk.groups[1] == 2)
+								{
+									const [r,g,b] = chunk.groups[g+1].split(';');
+
+									style['background-color'] = `rgb(${r},${g},${b})`;
+								}
+
+								if(chunk.groups[1] == 5)
+								{
+									const {r,g,b} = oneByte[ Number(chunk.groups[g+1]) ];
+
+									style['background-color'] = `rgb(${r},${g},${b})`;
+								}
+
+								break;
+
+							case 49:
+								style['background-color'] = 'var(--bgColor)';
+								break;
+
+							case 51:
+								style['border'] = '1px solid currentColor';
+								break;
+
+							case 52:
+								style['border'] = '1px solid currentColor';
+								style['border-radius'] = '1em';
+								break;
+
+							case 53:
+								style['border-top'] = '1px solid currentColor';
+								break;
+
+							case 54:
+								style['border'] = 'initial';
+								break;
+
+							case 55:
+								style['border'] = 'initial';
+								break;
+						}
+					}
+
+					return `</span><span class = "ansi" style = "${styleString}">`
+				}
+			}
+		}
+	});
+
+	const output = '<div>' + change.process(syntax) + '</div>';
+
+	console.log(output);
+});
+

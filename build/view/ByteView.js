@@ -42,7 +42,7 @@ var ByteView = /*#__PURE__*/function (_View) {
     _classCallCheck(this, ByteView);
 
     _this = _super.call(this, args);
-    _this.template = "<span cv-each = \"bytes:byte:b\">\n\t\t\t<span class = \"byte\" style = \"width:2em;\" cv-ref  = \"byte:curvature/base/Tag\"></span>\n\t\t</span>";
+    _this.template = "<span class = \"bytes\" cv-each = \"bytes:byte:b\">\n\t\t\t<span class = \"byte\" style = \"width:2em;\" cv-ref  = \"byte:curvature/base/Tag\"></span>\n\t\t</span>";
     return _this;
   }
 
