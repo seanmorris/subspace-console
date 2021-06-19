@@ -59,7 +59,7 @@ export class Console extends View
 				}
 			}
 
-			this.scrollToBottom();
+			this.onNextFrame(()=> this.scrollToBottom());
 		});
 
 		if(allOptions.init)
@@ -184,8 +184,8 @@ export class Console extends View
 		const passwordBox = this.tags.password.element;
 
 		this.args.bindTo('input', (v) => {
-			inputBox.style.height = 'auto';
-			inputBox.style.height = inputBox.scrollHeight + 'px';
+			// inputBox.style.height = 'auto';
+			// inputBox.style.height = inputBox.scrollHeight + 'px';
 		}, {frame: 1});
 
 		this.args.bindTo('passwordMode', (v) => {
@@ -251,7 +251,14 @@ export class Console extends View
 				const output = (event) => {
 					const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
 
-					this.args.output.push(`${prompt} ${event.detail}`);
+					if(event.detail instanceof View)
+					{
+						this.args.output.push(event.detail);
+					}
+					else
+					{
+						this.args.output.push(`${prompt} ${event.detail}`);
+					}
 				};
 
 				const error  = (event) => {
@@ -386,7 +393,10 @@ export class Console extends View
 	{
 		switch(event.key)
 		{
-			case 'ArrowDown':
+			case 'ArrowDown': {
+
+				this.onNextFrame(()=> this.scrollToBottom());
+
 				this.historyCursor--;
 
 				if(this.historyCursor <= -1)
@@ -398,14 +408,21 @@ export class Console extends View
 
 				this.args.input = this.history[this.historyCursor];
 
-				this.onNextFrame(()=>{
-					const element = this.tags.input.element;
-					element.selectionStart = element.value.length;
-					element.selectionEnd   = element.value.length;
-				});
-				break;
+				const element = this.tags.input.element;
+				element.selectionStart = element.value.length;
+				element.selectionEnd   = element.value.length;
 
-			case 'ArrowUp':
+				event.stopImmediatePropagation();
+				event.stopPropagation();
+				event.preventDefault();
+
+				break;
+			}
+
+			case 'ArrowUp': {
+
+				this.onNextFrame(()=> this.scrollToBottom());
+
 				if(this.historyCursor == -1)
 				{
 					this.originalInput = this.args.input;
@@ -420,12 +437,17 @@ export class Console extends View
 
 				this.args.input = this.history[this.historyCursor];
 
-				this.onNextFrame(()=>{
-					const element = this.tags.input.element;
-					element.selectionStart = element.value.length;
-					element.selectionEnd   = element.value.length;
-				});
+				const element = this.tags.input.element;
+
+				element.selectionStart = element.value.length;
+				element.selectionEnd   = element.value.length;
+
+				event.stopImmediatePropagation();
+				event.stopPropagation();
+				event.preventDefault();
+
 				break;
+			}
 
 			case 'Escape':
 				if(this.tasks.length)
