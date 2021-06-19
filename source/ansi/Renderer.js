@@ -1,26 +1,58 @@
 import { Renderer as BaseRenderer } from 'sixgram/Renderer';
 
+import { pallete } from './pallete';
 import { Colors255 } from './Colors255';
-import { pallete   } from './pallete';
 
-const oneByte = {};
+const audio = new AudioContext();
 
-for(const c in Colors255)
+const gainNode = audio.createGain();
+
+gainNode.connect(audio.destination);
+gainNode.gain.value = 10 * 0.01;
+
+export class Renderer extends BaseRenderer
 {
-	const color = Colors255[c];
+	style = {};
 
-	oneByte[ color.colorId ] = color.rgb;
-}
-const style = {};
+	constructor()
+	{
+		super({
+			normal: (chunk, parent) => this.setGraphicsMode(chunk, parent)
+		})
+	}
 
-export const Renderer = new BaseRenderer({
-	normal:   (chunk, parent) => {
+	reset()
+	{
+		for(const [k,] of Object.entries(this.style))
+		{
+			delete this.style[k];
+		}
+	}
 
+	beep()
+	{
+		const oscillator = audio.createOscillator();
+
+		oscillator.connect(gainNode);
+		oscillator.frequency.value = 840;
+		oscillator.type="square";
+
+		oscillator.start(audio.currentTime)
+		oscillator.stop(audio.currentTime + 200 * 0.001);
+	}
+
+	setGraphicsMode(chunk, parent)
+	{
 		if(typeof chunk === 'string')
 		{
+			if(chunk === '')
+			{
+				return false;
+			}
+
 			let styleString = '';
 
-			for(const [key, val] of Object.entries(style))
+			for(const [key, val] of Object.entries(this.style))
 			{
 				styleString += `${key}: ${val}; `;
 			}
@@ -30,69 +62,71 @@ export const Renderer = new BaseRenderer({
 
 		if(typeof chunk === 'object')
 		{
-			if(chunk.type === 'esc' || chunk.type === 'reset')
+			if(chunk.type === 'escaped' && chunk.groups[0] === 'a')
 			{
+				this.beep();
+			}
 
-				for(const g in chunk.groups)
+			if(chunk.type === 'graphics' || chunk.type === 'reset')
+			{
+				for(let g = 0; g < chunk.groups.length; g++)
 				{
 					const group = Number(chunk.groups[g]);
+
+					if(chunk.groups[g] === '')
+					{
+						return false;
+					}
 
 					switch(group)
 					{
 						case 0:
-							for(const key in style)
+							for(const key in this.style)
 							{
-								delete style[key];
-								// style[key] = 'initial'
-
-								// if(key === 'color')
-								// {
-								// 	style[key] = 'var(--fgColor)'
-								// }
-
-								// if(key === 'background-color')
-								// {
-								// 	style[key] = 'var(--bgColor)'
-								// }
+								delete this.style[key];
 							}
 							break;
 
 						case 1:
-							style['filter'] = 'brightness(1.5) contrast(0.5)';
-							style['opacity'] = 1;
+							this.style['filter'] = 'contrast(1.25)';
+							// this.style['text-shadow'] = '1px 1px 1px rgba(0,0,0,0.25), 0px 0px 1px rgba(0,0,0,0.125)';
+							this.style['font-weight'] = 'bold';
+							this.style['opacity'] = 1;
 							break;
 
 						case 2:
-							style['filter'] = 'brightness(0.5) contrast(1.5)';
-							style['opacity'] = 0.75;
+							this.style['filter'] = 'brightness(0.85)';
+							this.style['font-weight'] = 'light';
+							this.style['opacity'] = 0.75;
 							break;
 
 						case 3:
-							style['font-style'] = 'italic';
+							this.style['font-style'] = 'italic';
 							break;
 
 						case 4:
-							style['text-decoration'] = 'underline';
+							this.style['text-decoration'] = 'underline';
 							break;
 
 						case 5:
-							style['animation'] = 'var(--ansiBlink)';
+							this.style['animation'] = 'var(--ansiBlink)';
 							break;
 
 						case 7:
-							style['filter'] = 'invert(1) contrast(1.5)';
+							this.style['filter'] = 'invert(1)';
 							break;
 
 						case 8:
-							style['opacity'] = 0.1;
+							this.style['filter'] = 'contrast(0.5)';
+							this.style['opacity'] = 0.1;
 							break;
 
 						case 9:
-							style['text-decoration'] = 'line-through';
+							this.style['text-decoration'] = 'line-through';
 							break;
 
 						case 10:
-							style['font-family'] = 'var(--base-font))';
+							this.style['font-family'] = 'var(--base-font))';
 							break;
 
 						case 11:
@@ -104,172 +138,188 @@ export const Renderer = new BaseRenderer({
 						case 17:
 						case 18:
 						case 19:
-							style['font-family'] = `var(--alt-font-no-${group})`;
+							this.style['font-family'] = `var(--alt-font-no-${group})`;
 							break;
 
 						case 20:
-							style['font-family'] = 'var(--alt-font-fraktur)';
+							this.style['font-family'] = 'var(--alt-font-fraktur)';
+							this.style['font-size'] = '1.1rem';
 							break;
 
 						case 21:
-							style['font-weight'] = 'initial';
+							this.style['font-weight'] = 'initial';
 							break;
 
 						case 22:
-							style['font-weight'] = 'initial';
+							this.style['font-weight'] = 'initial';
 							break;
 
 						case 23:
-							style['font-style'] = 'fractur';
+							this.style['font-weight'] = 'initial';
+							this.style['font-style'] = 'initial';
 							break;
 
 						case 24:
-							style['text-decoration'] = 'none';
+							this.style['text-decoration'] = 'none';
+							this.style['font-family'] = 'sans-serif';
+							this.style['font-size'] = '12pt';
 							break;
 
 						case 25:
-							style['animation'] = 'none';
+							this.style['animation'] = 'none';
+							break;
+
+						case 26:
+							this.style['text-transform'] = 'full-width';
 							break;
 
 						case 27:
-							style['filter'] = 'initial';
+							this.style['filter'] = 'initial';
 							break;
 
 						case 28:
-							style['opacity'] = 'initial';
+							this.style['opacity'] = 'initial';
 							break;
 
 						case 29:
-							style['text-decoration'] = 'initial';
+							this.style['text-decoration'] = 'initial';
 							break;
 
 						case 30:
-							style['color'] = pallete.black;
+							this.style['color'] = pallete.black;
 							break;
 
 						case 31:
-							style['color'] = pallete.red;
+							this.style['color'] = pallete.red;
 							break;
 
 						case 32:
-							style['color'] = pallete.green;
+							this.style['color'] = pallete.green;
 							break;
 
 						case 33:
-							style['color'] = pallete.yellow;
+							this.style['color'] = pallete.yellow;
 							break;
 
 						case 34:
-							style['color'] = pallete.blue;
+							this.style['color'] = pallete.blue;
 							break;
 
 						case 35:
-							style['color'] = pallete.magenta;
+							this.style['color'] = pallete.magenta;
 							break;
 
 						case 36:
-							style['color'] = pallete.cyan;
+							this.style['color'] = pallete.cyan;
 							break;
 
 						case 37:
-							style['color'] = pallete.white;
+							this.style['color'] = pallete.white;
 							break;
 
 						case 38:
 
-							if(chunk.groups[2] == 2)
+							if(chunk.groups[1 + g] == 2)
 							{
-								const [r,g,b] = chunk.groups[g+1].split(';');
+								const [rd,gr,bl] = chunk.groups[2 + g].split(';');
 
-								style['color'] = `rgb(${r},${g},${b})`;
+								this.style['color'] = `rgb(${rd},${gr},${bl})`;
 							}
 
-							if(chunk.groups[2] == 5)
+							if(chunk.groups[1 + g] == 5)
 							{
-								const {r,g,b} = oneByte[ Number(chunk.groups[g+1]) ];
+								const {r:rd,g:gr,b:bl} = Colors255[ Number(chunk.groups[2 + g]) ];
 
-								style['color'] = `rgb(${r},${g},${b})`;
+								this.style['color'] = `rgb(${rd},${gr},${bl})`;
 							}
+
+							g += 2;
 
 							break;
 
 						case 39:
-							style['color'] = 'var(--fgColor)';
+							this.style['color'] = 'var(--fgColor)';
 							break;
 
 						case 40:
-							style['background-color'] = pallete.black;
+							this.style['background-color'] = pallete.black;
 							break;
 
 						case 41:
-							style['background-color'] = pallete.red;
+							this.style['background-color'] = pallete.red;
 							break;
 
 						case 42:
-							style['background-color'] = pallete.green;
+							this.style['background-color'] = pallete.green;
 							break;
 
 						case 43:
-							style['background-color'] = pallete.yellow;
+							this.style['background-color'] = pallete.yellow;
 							break;
 
 						case 44:
-							style['background-color'] = pallete.blue;
+							this.style['background-color'] = pallete.blue;
 							break;
 
 						case 45:
-							style['background-color'] = pallete.magenta;
+							this.style['background-color'] = pallete.magenta;
 							break;
 
 						case 46:
-							style['background-color'] = pallete.cyan;
+							this.style['background-color'] = pallete.cyan;
 							break;
 
 						case 47:
-							style['background-color'] = pallete.white;
+							this.style['background-color'] = pallete.white;
 							break;
 
 						case 48:
 
-							if(chunk.groups[1] == 2)
+							if(chunk.groups[1 + g] == 2)
 							{
-								const [r,g,b] = chunk.groups[2].split(';');
+								const [rd,gr,bl] = chunk.groups[2 + g].split(';');
 
-								style['background-color'] = `rgb(${r},${g},${b})`;
+								this.style['background-color'] = `rgb(${rd},${gr},${bl})`;
 							}
 
-							if(chunk.groups[1] == 5)
+							if(chunk.groups[1 + g] == 5)
 							{
-								const {r,g,b} = oneByte[ Number(chunk.groups[2]) ];
+								const {r:rd,g:gr,b:bl} = Colors255[ Number(chunk.groups[2 + g]) ];
 
-								style['background-color'] = `rgb(${r},${g},${b})`;
+								this.style['background-color'] = `rgb(${rd},${gr},${bl})`;
 							}
+
+							g += 2;
 
 							break;
 
 						case 49:
-							style['background-color'] = 'var(--bgColor)';
+							this.style['background-color'] = 'var(--bgColor)';
+							break;
+
+						case 50:
+							this.style['text-transform'] = 'initial';
 							break;
 
 						case 51:
-							style['border'] = '1px solid currentColor';
+							this.style['border'] = '1px solid currentColor';
 							break;
 
 						case 52:
-							style['border'] = '1px solid currentColor';
-							style['border-radius'] = '1em';
+							this.style['border'] = '1px solid currentColor';
+							this.style['border-radius'] = '1em';
 							break;
 
 						case 53:
-							style['border-top'] = '1px solid currentColor';
+							this.style['text-decoration'] = 'overline';
 							break;
 
 						case 54:
-							style['border'] = 'initial';
+							this.style['border'] = 'initial';
 							break;
 
 						case 55:
-							style['border'] = 'initial';
+							this.style['border'] = 'initial';
 							break;
 					}
 				}
@@ -278,4 +328,4 @@ export const Renderer = new BaseRenderer({
 			return false;
 		}
 	}
-});
+}

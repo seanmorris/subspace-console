@@ -4,7 +4,7 @@
   "author": "Sean Morris <subspace@seanmorr.is> (https://seanmorr.is)",
   "version": "0.0.1-e",
   "dependencies": {
-    "sixgram": "^0.0.2-b"
+    "sixgram": "^0.0.2-c"
   },
   "devDependencies": {
     "@babel/cli": "^7.11.6",
@@ -14,7 +14,8 @@
     "babel-minify": "^0.5.1",
     "babel-plugin-macros": "^2.8.0",
     "babel-preset-es2015": "^6.24.1",
-    "curvature": "^0.0.66"
+    "curvature": "^0.0.66",
+    "rawquire": "^0.0.0"
   },
   "files": [
     "dist/layout.css",

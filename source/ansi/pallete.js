@@ -1,34 +1,33 @@
 export const pallete = {
-	black:     '#000000'
-	, bBlack:  '#888888'
-	, dBlack:  '#343434'
+	black:      'var(--ansi-black, #000000)'
+	, dBlack:   'var(--ansi-black-dark, #343434)'
+	, bBlack:   'var(--ansi-black-light, #888888)'
 
-	, red:     '#c0002c'
-	, bRed:    '#ff7869'
-	, dRed:    '#4a132b'
+	, red:      'var(--ansi-red, #c0002c)'
+	, dRed:     'var(--ansi-red-dark, #4a132b)'
+	, bRed:     'var(--ansi-red-light, #ff7869)'
 
-	, green:   '#80a763'
-	, bGreen:  '#93d393'
-	, dGreen:  '#326f38'
+	, green:    'var(--ansi-green, #80a763)'
+	, dGreen:   'var(--ansi-green-dark, #326f38)'
+	, bGreen:   'var(--ansi-green-light, #93d393)'
 
-	, yellow:  '#e3c651'
-	, bYellow:  '#fdc253'
-	, dYellow:  '#baa447'
+	, yellow:   'var(--ansi-yellow, #e3c651)'
+	, dYellow:  'var(--ansi-yellow-dark, #baa447)'
+	, bYellow:  'var(--ansi-yellow-light, #fdc253)'
 
-	, blue:    '#5485c0'
-	, bBlue:    '#77aff2'
-	, dBlue:    '#38577d'
+	, blue:     'var(--ansi-blue, #5485c0)'
+	, dBlue:    'var(--ansi-blue-dark, #38577d)'
+	, bBlue:    'var(--ansi-blue-light, #77aff2)'
 
-	, magenta: '#C61B6E'
-	, bMagenta: '#bf83c0'
-	, dMagenta: '#935894'
+	, magenta:  'var(--ansi-magenta, #C61B6E)'
+	, dMagenta: 'var(--ansi-magenta-dark, #935894)'
+	, bMagenta: 'var(--ansi-magenta-light, #bf83c0)'
 
-	, cyan:    '#57c2c0'
-	, bCyan:    '#cef6f5'
-	, dCyan:    '#2d5695'
+	, cyan:     'var(--ansi-cyan, #57c2c0)'
+	, dCyan:    'var(--ansi-cyan-dark, #2d5695)'
+	, bCyan:    'var(--ansi-cyan-light, #cef6f5)'
 
-	, white:   '#e0e0e0'
-	, bWhite:   '#ffffff'
-	, dWhite:   '#b0b0b0'
-
+	, white:    'var(--ansi-cyan, #e0e0e0)'
+	, dWhite:   'var(--ansi-cyan-dark, #b0b0b0)'
+	, bWhite:   'var(--ansi-cyan-light, #ffffff)'
 };

@@ -21,13 +21,13 @@ var _Renderer = require("./ansi/Renderer");
 
 var _Parser = require("./ansi/Parser");
 
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
-
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -80,7 +80,7 @@ var Console = /*#__PURE__*/function (_View) {
     _this.tasks = [];
     _this.taskList = new _Bag.Bag();
     _this.taskList.type = _Task.Task;
-    _this.max = 512;
+    _this.max = 10;
     _this.historyCursor = -1;
     _this.history = [];
     _this.env = new Map();
@@ -90,15 +90,13 @@ var Console = /*#__PURE__*/function (_View) {
         return;
       }
 
-      if (_this.args.output.length > _this.max) {
-        var removed = _this.args.output.shift();
-
-        if (_typeof(removed) === 'object') {
-          removed.remove();
-        }
-      }
-
-      _this.scrollToBottom();
+      _this.onNextFrame(function () {
+        // if(this.args.output.filter(x=>x).length > this.max)
+        // {
+        // 	this.args.output.shift();
+        // }
+        _this.scrollToBottom();
+      });
     });
 
     if (allOptions.init) {
@@ -132,7 +130,9 @@ var Console = /*#__PURE__*/function (_View) {
             _this2.args.output.push(output);
           }
 
-          task = _this2.interpret(command.substr(1));
+          var unescaped = _this2.unescape(command.substr(1));
+
+          task = _this2.interpret(unescaped);
         } else if (_this2.tasks.length) {
           if (!_this2.args.passwordMode) {
             var _output = new _EchoMessage.EchoMessage({
@@ -143,19 +143,17 @@ var Console = /*#__PURE__*/function (_View) {
             _this2.args.output.push(_output);
           }
 
-          task = _this2.tasks[0].write(command) || Promise.resolve();
+          var _unescaped = _this2.unescape(command);
+
+          task = _this2.tasks[0].write(_unescaped) || Promise.resolve();
         } else {
           if (!_this2.args.passwordMode) {
             _this2.args.output.push(":: ".concat(command));
           }
 
-          task = _this2.interpret(command); // this.args.output.push(`${this.tasks[0].prompt} ${command}`);
+          var _unescaped2 = _this2.unescape(command);
 
-          var _output2 = new _EchoMessage.EchoMessage({
-            message: command
-          });
-
-          _this2.args.output.push(_output2);
+          task = _this2.interpret(_unescaped2);
         }
 
         if (!(task instanceof _Task.Task) && !(task instanceof Promise)) {
@@ -265,10 +263,6 @@ var Console = /*#__PURE__*/function (_View) {
       var _this5 = this;
 
       this.historyCursor = -1;
-      input = input.replace(/\\./, function (x) {
-        console.log(x);
-        return x;
-      });
       var expressions = input.split(/\s*\;\s*/);
       var lastTask = null;
 
@@ -285,19 +279,27 @@ var Console = /*#__PURE__*/function (_View) {
             _this5.tasks.unshift(task);
 
             var output = function output(event) {
-              var prompt = task.outPrompt || task.prompt || _this5.args.prompt || '::';
+              var line = event.detail;
 
-              if (_typeof(event.detail) === 'object') {
-                _this5.args.output.push(event.detail);
+              if (_typeof(line) === 'object') {
+                _this5.args.output.push(line);
               } else {
-                _this5.args.output.push("".concat(prompt, " ").concat(event.detail));
+                var prompt = task.outPrompt || task.prompt || _this5.args.prompt || '::';
+
+                var rendered = _this5.parseAnsi(line, prompt);
+
+                _this5.args.output.push(rendered);
               }
             };
 
             var error = function error(event) {
+              console.error(event);
+              var line = event.detail;
               var errorPrompt = task.errorPrompt || '!!';
 
-              _this5.args.output.push("".concat(errorPrompt, " ").concat(event.detail));
+              var rendered = _this5.parseAnsi(line, errorPrompt);
+
+              _this5.args.output.push(rendered);
             };
 
             task.addEventListener('output', output);
@@ -529,6 +531,51 @@ var Console = /*#__PURE__*/function (_View) {
           top: scrollTo
         });
       });
+    }
+  }, {
+    key: "parseAnsi",
+    value: function parseAnsi(line, prompt) {
+      line = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var renderer = new _Renderer.Renderer();
+
+      var parsed = _Parser.Parser.parse(line);
+
+      var wrapped = renderer.process(parsed);
+
+      if (!prompt) {
+        return _View2.View.from("<span class =\"ansi\">".concat(wrapped, "</span>"));
+      }
+
+      var promptEsc = prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      var rendered = _View2.View.from("".concat(promptEsc, " <span class =\"ansi\">").concat(wrapped, "</span>"));
+
+      return rendered;
+    }
+  }, {
+    key: "unescape",
+    value: function unescape(string) {
+      return string.replace(/\\n/gm, '\n').replace(/\\r/gm, '\r').replace(/\\t/gm, '\t').replace(/\\e/gm, "\x1B").replace(/\\u001b/gm, "\x1B");
+    }
+  }, {
+    key: "write",
+    value: function write() {
+      for (var _len = arguments.length, lines = new Array(_len), _key = 0; _key < _len; _key++) {
+        lines[_key] = arguments[_key];
+      }
+
+      for (var _i = 0, _lines = lines; _i < _lines.length; _i++) {
+        var line = _lines[_i];
+
+        if (typeof line === 'string') {
+          var unescaped = this.unescape(line);
+          var parsed = this.parseAnsi(unescaped);
+          this.args.output.push(parsed);
+          continue;
+        }
+
+        this.args.output.push(line);
+      }
     }
   }]);
 

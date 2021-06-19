@@ -7,7 +7,7 @@ import { EchoMessage } from './view/EchoMessage';
 import { Task } from './Task';
 import { Path } from './Path';
 
-import { rawquire } from './rawquire.macro';
+import { rawquire } from 'rawquire/rawquire.macro';
 
 import { Renderer as AnsiRenderer } from './ansi/Renderer';
 import { Parser as AnsiParser } from './ansi/Parser';
@@ -39,7 +39,7 @@ export class Console extends View
 
 		this.taskList.type = Task;
 
-		this.max = 512;
+		this.max = 10;
 
 		this.historyCursor = -1;
 		this.history       = [];
@@ -47,22 +47,22 @@ export class Console extends View
 		this.env = new Map();
 
 		this.args.output.___after((t, k, o, a) => {
+
 			if(k !== 'push')
 			{
 				return;
 			}
 
-			if(this.args.output.length > this.max)
-			{
-				const removed = this.args.output.shift();
+			this.onNextFrame(() => {
 
-				if(typeof removed === 'object')
-				{
-					removed.remove();
-				}
-			}
+				// if(this.args.output.filter(x=>x).length > this.max)
+				// {
+				// 	this.args.output.shift();
+				// }
 
-			this.scrollToBottom();
+				this.scrollToBottom()
+
+			});
 		});
 
 		if(allOptions.init)
@@ -97,7 +97,9 @@ export class Console extends View
 					this.args.output.push(output);
 				}
 
-				task = this.interpret(command.substr(1));
+				const unescaped = this.unescape(command.substr(1));
+
+				task = this.interpret(unescaped);
 			}
 			else if(this.tasks.length)
 			{
@@ -108,7 +110,9 @@ export class Console extends View
 					this.args.output.push(output);
 				}
 
-				task = this.tasks[0].write(command) || Promise.resolve();
+				const unescaped = this.unescape(command);
+
+				task = this.tasks[0].write(unescaped) || Promise.resolve();
 			}
 			else
 			{
@@ -117,13 +121,9 @@ export class Console extends View
 					this.args.output.push(`:: ${command}`);
 				}
 
-				task = this.interpret(command);
+				const unescaped = this.unescape(command);
 
-				// this.args.output.push(`${this.tasks[0].prompt} ${command}`);
-
-				const output = new EchoMessage({message:command});
-
-				this.args.output.push(output);
+				task = this.interpret(unescaped);
 			}
 
 			if(!(task instanceof Task) && !(task instanceof Promise))
@@ -239,11 +239,6 @@ export class Console extends View
 	{
 		this.historyCursor = -1;
 
-		input = input.replace(/\\./, x => {
-			console.log(x);
-			return x;
-		});
-
 		const expressions = input.split(/\s*\;\s*/);
 
 		let lastTask = null;
@@ -257,23 +252,34 @@ export class Console extends View
 				this.tasks.unshift(task);
 
 				const output = (event) => {
-					const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
 
-					if(typeof event.detail === 'object')
+					const line = event.detail;
+
+					if(typeof line === 'object')
 					{
-						this.args.output.push(event.detail);
+						this.args.output.push(line);
 					}
 					else
 					{
-						this.args.output.push(`${prompt} ${event.detail}`);
-					}
+						const prompt = task.outPrompt || task.prompt || this.args.prompt || '::';
 
+						const rendered = this.parseAnsi(line, prompt);
+
+						this.args.output.push(rendered);
+					}
 				};
 
 				const error  = (event) => {
+
+					console.error(event);
+
+					const line = event.detail;
+
 					const errorPrompt = task.errorPrompt || '!!';
 
-					this.args.output.push(`${errorPrompt} ${event.detail}`);
+					const rendered = this.parseAnsi(line, errorPrompt);
+
+					this.args.output.push(rendered);
 				}
 
 				task.addEventListener('output', output);
@@ -522,5 +528,56 @@ export class Console extends View
 		this.onNextFrame(() =>{
 			scroller.scrollTo({behavior: 'smooth', left: 0, top: scrollTo});
 		});
+	}
+
+	parseAnsi(line, prompt)
+	{
+		line = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+		const renderer = new AnsiRenderer;
+
+		const parsed  = AnsiParser.parse(line);
+		const wrapped = renderer.process(parsed);
+
+		if(!prompt)
+		{
+			return View.from(`<span class ="ansi">${wrapped}</span>`);
+		}
+
+		const promptEsc = prompt
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
+
+		const rendered = View.from(`${promptEsc} <span class ="ansi">${wrapped}</span>`);
+
+		return rendered;
+	}
+
+	unescape(string)
+	{
+		return string
+			.replace(/\\n/gm,'\n')
+			.replace(/\\r/gm,'\r')
+			.replace(/\\t/gm,'\t')
+			.replace(/\\e/gm,'\u001b')
+			.replace(/\\u001b/gm,'\u001b')
+	}
+
+	write(...lines)
+	{
+		for(const line of lines)
+		{
+			if(typeof line === 'string')
+			{
+				const unescaped = this.unescape(line);
+				const parsed = this.parseAnsi(unescaped);
+
+				this.args.output.push(parsed);
+
+				continue;
+			}
+
+			this.args.output.push(line);
+		}
 	}
 }
