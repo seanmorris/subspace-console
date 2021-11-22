@@ -21,6 +21,16 @@ var _Renderer = require("./ansi/Renderer");
 
 var _Parser = require("./ansi/Parser");
 
+function _construct(Parent, args, Class) { if (_isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
@@ -78,6 +88,7 @@ var Console = /*#__PURE__*/function (_View) {
     _this.routes = {};
     _this.args.passwordMode = false;
     _this.tasks = [];
+    _this.external = options.external || [];
     _this.taskList = new _Bag.Bag();
     _this.taskList.type = _Task.Task;
     _this.max = 10;
@@ -91,11 +102,7 @@ var Console = /*#__PURE__*/function (_View) {
       }
 
       _this.onNextFrame(function () {
-        // if(this.args.output.filter(x=>x).length > this.max)
-        // {
-        // 	this.args.output.shift();
-        // }
-        _this.scrollToBottom();
+        return _this.scrollToBottom();
       });
     });
 
@@ -158,8 +165,6 @@ var Console = /*#__PURE__*/function (_View) {
 
         if (!(task instanceof _Task.Task) && !(task instanceof Promise)) {
           task = Promise.resolve(task);
-
-          _this2.args.output.push(":: ".concat(command));
         }
 
         _this2.historyCursor = -1;
@@ -361,7 +366,7 @@ var Console = /*#__PURE__*/function (_View) {
 
       if (command in this.path) {
         var cmdClass = this.path[command];
-        task = new cmdClass(args, previousTask, this);
+        task = _construct(cmdClass, [args, previousTask, this].concat(_toConsumableArray(this.external)));
       } else {
         switch (command) {
           case 'clear':
@@ -463,12 +468,10 @@ var Console = /*#__PURE__*/function (_View) {
 
         case 'Escape':
           if (this.tasks.length) {
-            console.log(_Task.Task.KILL);
             this.tasks[0]["finally"](function () {
               return _this6.args.output.push(":: Killed.");
             });
             this.tasks[0].signal(_Task.Task.KILL);
-            this.tasks[0].signal('kill');
           }
 
           this.args.passwordMode = false;
@@ -477,11 +480,18 @@ var Console = /*#__PURE__*/function (_View) {
         case 'Tab':
           event.preventDefault();
 
-          if (!this.args.input || this.args.input[0] !== '/') {
+          if (!this.args.input) {
             break;
           }
 
-          var search = this.args.input.substr(1);
+          var search = this.args.input;
+          var sigil = '';
+
+          if (this.args.input[0] === '/') {
+            search = this.args.input.substr(1);
+            sigil = this.args.input.substr(0, 1);
+            break;
+          }
 
           for (var cmd in this.path) {
             if (cmd.length < search.length) {
@@ -489,7 +499,7 @@ var Console = /*#__PURE__*/function (_View) {
             }
 
             if (search === cmd.substr(0, search.length)) {
-              this.args.input = '/' + cmd;
+              this.args.input = sigil + cmd;
               break;
             }
           }
@@ -523,7 +533,7 @@ var Console = /*#__PURE__*/function (_View) {
     key: "scrollToBottom",
     value: function scrollToBottom() {
       var scroller = (this.scroller === document.body ? window : this.scroller) || window;
-      var scrollTo = (this.scroller === document.body ? this.scroller : document.body).scrollHeight;
+      var scrollTo = this.scroller.scrollHeight;
       this.onNextFrame(function () {
         scroller.scrollTo({
           behavior: 'smooth',

@@ -35,6 +35,8 @@ export class Console extends View
 
 		this.tasks = [];
 
+		this.external = options.external || [];
+
 		this.taskList = new Bag;
 
 		this.taskList.type = Task;
@@ -53,16 +55,7 @@ export class Console extends View
 				return;
 			}
 
-			this.onNextFrame(() => {
-
-				// if(this.args.output.filter(x=>x).length > this.max)
-				// {
-				// 	this.args.output.shift();
-				// }
-
-				this.scrollToBottom()
-
-			});
+			this.onNextFrame(() => this.scrollToBottom());
 		});
 
 		if(allOptions.init)
@@ -129,8 +122,6 @@ export class Console extends View
 			if(!(task instanceof Task) && !(task instanceof Promise))
 			{
 				task = Promise.resolve(task);
-
-				this.args.output.push(`:: ${command}`);
 			}
 
 			this.historyCursor = -1;
@@ -342,7 +333,7 @@ export class Console extends View
 		{
 			const cmdClass = this.path[command];
 
-			task = new cmdClass(args, previousTask, this);
+			task = new cmdClass(args, previousTask, this, ...this.external);
 		}
 		else
 		{
@@ -452,14 +443,11 @@ export class Console extends View
 			case 'Escape':
 				if(this.tasks.length)
 				{
-					console.log( Task.KILL );
-
 					this.tasks[0].finally(()=>this.args.output.push(
 						`:: Killed.`
 					));
 
 					this.tasks[0].signal( Task.KILL );
-					this.tasks[0].signal('kill');
 				}
 
 				this.args.passwordMode = false;
@@ -469,12 +457,20 @@ export class Console extends View
 
 				event.preventDefault();
 
-				if(!this.args.input || this.args.input[0] !== '/')
+				if(!this.args.input)
 				{
 					break;
 				}
 
-				const search = this.args.input.substr(1);
+				let search = this.args.input;
+				let sigil  = '';
+				
+				if(this.args.input[0] === '/')
+				{
+					search = this.args.input.substr(1);
+					sigil  = this.args.input.substr(0, 1);
+					break;
+				}
 
 				for(const cmd in this.path)
 				{
@@ -485,7 +481,7 @@ export class Console extends View
 
 					if(search === cmd.substr(0, search.length))
 					{
-						this.args.input = '/' + cmd;
+						this.args.input = sigil + cmd;
 						break;
 					}
 				}
@@ -523,7 +519,8 @@ export class Console extends View
 	scrollToBottom()
 	{
 		const scroller = (this.scroller === document.body ? window : this.scroller) || window;
-		const scrollTo = (this.scroller === document.body ? this.scroller : document.body).scrollHeight;
+		
+		const scrollTo = this.scroller.scrollHeight;
 
 		this.onNextFrame(() =>{
 			scroller.scrollTo({behavior: 'smooth', left: 0, top: scrollTo});
