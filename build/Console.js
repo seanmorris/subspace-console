@@ -78,7 +78,7 @@ var Console = /*#__PURE__*/function (_View) {
       path: _Path.Path
     };
     var allOptions = Object.assign({}, defaults, options);
-    _this.template = "<div class = \"terminal [[inverted]]\" cv-on = \"click:focus(event)\">\n\t<div class = \"output\" cv-each = \"output:line:l\" cv-ref = \"output:curvature/base/Tag\">\n\t\t<p>[[line]]</p>\n\t</div>\n\t<div class = \"bottom\">\n\t\t<div>[[prompt]]&nbsp;</div>\n\t\t<div>\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<textarea\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-on   = \":keydown(event);:keyup(event)\"\n\t\t\t\t\tcv-ref  = \"input:curvature/base/Tag\"\n\t\t\t\t\trow     = \"1\"\n\t\t\t\t></textarea>\n\t\t\t</form>\n\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<input\n\t\t\t\t\tautocomplete = \"one-time-code\"\n\t\t\t\t\tname    = \"pw-input\"\n\t\t\t\t\ttype    = \"password\"\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-ref  = \"password:curvature/base/Tag\"\n\t\t\t\t\tcv-on   = \":keydown(event,false);:keyup(event,false)\"\n\t\t\t\t/>\n\t\t\t</form>\n\n\t\t\t<input\n\t\t\t\tcv-on  = \"input:fileLoaded(event)\"\n\t\t\t\tcv-ref = \"file:curvature/base/Tag\"\n\t\t\t\tname   = \"file-input\"\n\t\t\t\ttype   = \"file\"\n\t\t\t\tstyle  = \"display: none\"\n\t\t\t/>\n\t\t</div>\n\t</div>\n</div>\n\n<div class = \"scanlines\"></div>\n";
+    _this.template = "<div class = \"terminal [[inverted]]\" cv-on = \"click:focus(event);:keydown(event):c;:keyup(event)c\">\n\t<div class = \"output\" cv-each = \"output:line:l\" cv-ref = \"output:curvature/base/Tag\">\n\t\t<p>[[line]]</p>\n\t</div>\n\t<div class = \"bottom\">\n\t\t<div>[[prompt]]&nbsp;</div>\n\t\t<div>\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<textarea\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-ref  = \"input:curvature/base/Tag\"\n\t\t\t\t\trow     = \"1\"\n\t\t\t\t></textarea>\n\t\t\t</form>\n\n\t\t\t<form cv-on = \"submit:cancel(event)\">\n\t\t\t\t<input\n\t\t\t\t\tautocomplete = \"one-time-code\"\n\t\t\t\t\tname    = \"pw-input\"\n\t\t\t\t\ttype    = \"password\"\n\t\t\t\t\tcv-bind = \"input\"\n\t\t\t\t\tcv-ref  = \"password:curvature/base/Tag\"\n\t\t\t\t/>\n\t\t\t</form>\n\n\t\t\t<input\n\t\t\t\tcv-on  = \"input:fileLoaded(event)\"\n\t\t\t\tcv-ref = \"file:curvature/base/Tag\"\n\t\t\t\tname   = \"file-input\"\n\t\t\t\ttype   = \"file\"\n\t\t\t\tstyle  = \"display: none\"\n\t\t\t/>\n\t\t</div>\n\t</div>\n</div>\n\n<div class = \"scanlines\"></div>\n";
     _this.args.input = '';
     _this.args.output = [];
     _this.args.inverted = '';
@@ -216,9 +216,8 @@ var Console = /*#__PURE__*/function (_View) {
 
       var inputBox = this.tags.input.element;
       var passwordBox = this.tags.password.element;
-      this.args.bindTo('input', function (v) {
-        inputBox.style.height = 'auto';
-        inputBox.style.height = inputBox.scrollHeight + 'px';
+      this.args.bindTo('input', function (v) {// inputBox.style.height = 'auto';
+        // inputBox.style.height = inputBox.scrollHeight + 'px';
       }, {
         frame: 1
       });
@@ -430,41 +429,54 @@ var Console = /*#__PURE__*/function (_View) {
 
       switch (event.key) {
         case 'ArrowDown':
-          this.historyCursor--;
+          {
+            this.onNextFrame(function () {
+              return _this6.scrollToBottom();
+            });
+            this.historyCursor--;
 
-          if (this.historyCursor <= -1) {
-            this.historyCursor = -1;
-            this.args.input = this.originalInput;
-            return;
-          }
+            if (this.historyCursor <= -1) {
+              this.historyCursor = -1;
+              this.args.input = this.originalInput;
+              return;
+            }
 
-          this.args.input = this.history[this.historyCursor];
-          this.onNextFrame(function () {
-            var element = _this6.tags.input.element;
+            this.args.input = this.history[this.historyCursor];
+            var element = this.tags.input.element;
             element.selectionStart = element.value.length;
             element.selectionEnd = element.value.length;
-          });
-          break;
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            break;
+          }
 
         case 'ArrowUp':
-          if (this.historyCursor == -1) {
-            this.originalInput = this.args.input;
+          {
+            this.onNextFrame(function () {
+              return _this6.scrollToBottom();
+            });
+
+            if (this.historyCursor == -1) {
+              this.originalInput = this.args.input;
+            }
+
+            this.historyCursor++;
+
+            if (this.historyCursor >= this.history.length) {
+              this.historyCursor--;
+              return;
+            }
+
+            this.args.input = this.history[this.historyCursor];
+            var _element = this.tags.input.element;
+            _element.selectionStart = _element.value.length;
+            _element.selectionEnd = _element.value.length;
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            break;
           }
-
-          this.historyCursor++;
-
-          if (this.historyCursor >= this.history.length) {
-            this.historyCursor--;
-            return;
-          }
-
-          this.args.input = this.history[this.historyCursor];
-          this.onNextFrame(function () {
-            var element = _this6.tags.input.element;
-            element.selectionStart = element.value.length;
-            element.selectionEnd = element.value.length;
-          });
-          break;
 
         case 'Escape':
           if (this.tasks.length) {
