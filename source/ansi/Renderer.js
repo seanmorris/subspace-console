@@ -3,12 +3,16 @@ import { Renderer as BaseRenderer } from 'sixgram/Renderer';
 import { pallete } from './pallete';
 import { Colors255 } from './Colors255';
 
-const audio = new AudioContext();
+const audio = typeof window.AudioContext === 'function'
+	? new window.AudioContext()
+	: false;
 
-const gainNode = audio.createGain();
-
-gainNode.connect(audio.destination);
-gainNode.gain.value = 10 * 0.01;
+if(audio)
+{
+	const gainNode = audio.createGain();
+	gainNode.connect(audio.destination);
+	gainNode.gain.value = 10 * 0.01;
+}
 
 export class Renderer extends BaseRenderer
 {
@@ -31,6 +35,11 @@ export class Renderer extends BaseRenderer
 
 	beep()
 	{
+		if(!audio)
+		{
+			return;
+		}
+		
 		const oscillator = audio.createOscillator();
 
 		oscillator.connect(gainNode);

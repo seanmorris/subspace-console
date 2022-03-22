@@ -47,10 +47,15 @@ function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.g
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-var audio = new AudioContext();
-var gainNode = audio.createGain();
-gainNode.connect(audio.destination);
-gainNode.gain.value = 10 * 0.01;
+var audio = typeof window.AudioContext === 'function' ? new window.AudioContext() : false;
+
+if (audio) {
+  var _gainNode = audio.createGain();
+
+  _gainNode.connect(audio.destination);
+
+  _gainNode.gain.value = 10 * 0.01;
+}
 
 var Renderer = /*#__PURE__*/function (_BaseRenderer) {
   _inherits(Renderer, _BaseRenderer);
@@ -86,6 +91,10 @@ var Renderer = /*#__PURE__*/function (_BaseRenderer) {
   }, {
     key: "beep",
     value: function beep() {
+      if (!audio) {
+        return;
+      }
+
       var oscillator = audio.createOscillator();
       oscillator.connect(gainNode);
       oscillator.frequency.value = 840;
