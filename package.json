@@ -2,7 +2,7 @@
   "name": "subspace-console",
   "description": "HTML terminal UI for SubSpace.",
   "author": "Sean Morris <subspace@seanmorr.is> (https://seanmorr.is)",
-  "version": "0.0.2-a",
+  "version": "0.0.2-b",
   "dependencies": {
     "sixgram": "^0.0.2-d"
   },
